@@ -144,7 +144,7 @@ export default function SellingClassifieds() {
 									setCurrentSlide(swiper.activeIndex)
 									SwiperPaginationService.updateForCard(swiper)
 								}}
-								className='w-full !h-auto'
+								className='w-full !h-auto  select-none'
 								breakpoints={{
 									320: {
 										slidesPerView: 1.2,

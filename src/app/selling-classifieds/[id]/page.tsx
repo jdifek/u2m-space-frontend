@@ -298,7 +298,7 @@ export default function ClassifiedDetail() {
 							</div>
 						</div>
 					</div>
-					<div className='mb-4 lg:hidden'>
+					<div className='mb-4 lg:hidden '>
 						<Swiper
 							slidesPerView={1}
 							spaceBetween={16}
@@ -307,7 +307,7 @@ export default function ClassifiedDetail() {
 							speed={800}
 							freeMode={false}
 							touchRatio={0.5}
-							className='w-full h-[285px]'
+							className='w-full h-[285px] select-none'
 							breakpoints={{
 								320: {
 									slidesPerView: 1.2,

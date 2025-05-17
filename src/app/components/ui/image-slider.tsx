@@ -144,7 +144,7 @@ export const ImageSlider = ({
 						spaceBetween: 60,
 					},
 				}}
-				className='w-full h-auto!'
+				className='w-full h-auto! select-none'
 			>
 				{images.map((image, index) => (
 					<SwiperSlide key={index}>
@@ -190,7 +190,8 @@ export const ImageSlider = ({
 								className='w-6 h-6 text-[#4f4f4f] fill-none'
 							/>
 						}
-						className='max-[769px]:hidden inline-flex p-2 min-w-[40px] w-fit'
+            isHover
+						className=' rounded-lg max-[769px]:hidden inline-flex p-2 min-w-[40px] w-fit'
 						onClick={onOpenModal}
 					/>
 				)}

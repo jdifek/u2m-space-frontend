@@ -110,6 +110,7 @@ export default function ClassifiedsCreate() {
 		price: string
 	}) => {
 		console.log('handleSubmit called with:', formData)
+    console.log('handleSubmit called with:', formData, new Date().toISOString()); // Лог с временной меткой
 
 		setIsLoading(true)
 		setError('')

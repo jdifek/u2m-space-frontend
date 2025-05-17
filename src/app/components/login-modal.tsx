@@ -47,18 +47,26 @@ export const LoginModal = () => {
 		}
 	}
 
-	const handleAuthClick = (provider: string) => {
+	const handleAuthClick = (provider: string, href?: string) => {
 		setIsLoading(true)
 		setError(null)
+		if (href) {
+			window.location.href = href // Выполняем редирект на провайдера
+		}
 	}
 
 	useEffect(() => {
 		const errorMsg = searchParams.get('error')
 		if (errorMsg) {
 			setError(errorMsg)
-			setIsLoading(false)
+			setIsLoading(false) // Сбрасываем загрузку при ошибке
+			// Автоматически закрываем модалку через 2 секунды при ошибке
+			const timer = setTimeout(() => {
+				handleClose()
+			}, 2000)
+			return () => clearTimeout(timer)
 		}
-	}, [searchParams])
+	}, [searchParams, handleClose])
 
 	useEffect(() => {
 		const handleEsc = (event: KeyboardEvent) => {
@@ -89,12 +97,10 @@ export const LoginModal = () => {
 					transition={{ duration: 0.3 }}
 					className='bg-white rounded-xl shadow-lg w-[582px] max-w-full p-8 flex flex-col items-center space-y-8'
 				>
-					{/* Заголовок */}
 					<h2 className='text-[24px] font-bold text-[#4f4f4f] text-center'>
 						Welcome
 					</h2>
 
-					{/* Ошибка */}
 					{error && (
 						<div className='bg-red-100 text-red-700 p-4 rounded-lg w-full text-center animate-pulse'>
 							{error}
@@ -124,7 +130,7 @@ export const LoginModal = () => {
 												/>
 											}
 											href={item.href}
-											onClick={() => handleAuthClick(item.name)}
+											onClick={() => handleAuthClick(item.name, item.href)}
 											isHover
 											className='flex items-center gap-4 p-4 text-[16px] font-bold text-[#4f4f4f] border border-[#bdbdbd] rounded-xl hover:border-[#f9329c] transition-colors min-w-[162px] w-fit h-[64px] justify-center'
 										/>
