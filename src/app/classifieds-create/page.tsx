@@ -110,7 +110,7 @@ export default function ClassifiedsCreate() {
 		price: string
 	}) => {
 		console.log('handleSubmit called with:', formData)
-    console.log('handleSubmit called with:', formData, new Date().toISOString()); // Лог с временной меткой
+		console.log('handleSubmit called with:', formData, new Date().toISOString()) // Лог с временной меткой
 
 		setIsLoading(true)
 		setError('')
@@ -216,6 +216,8 @@ export default function ClassifiedsCreate() {
 									}
 									text='Publish'
 									className='min-w-[95px] w-fit h-10 px-4 bg-[#3486fe]! text-white rounded-lg'
+									disabled={isPublishDisabled}
+									disableClass='text-white! bg-[#bdbdbd]!'
 								/>
 							</div>
 						</div>
@@ -358,6 +360,7 @@ export default function ClassifiedsCreate() {
 													text='Publish'
 													className='min-w-[95px] w-fit h-10 px-4 bg-[#3486fe]! text-white rounded-lg'
 													disabled={isPublishDisabled}
+													disableClass='text-white! bg-[#bdbdbd]!'
 												/>
 											</div>
 										</div>
