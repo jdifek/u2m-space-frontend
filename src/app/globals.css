@@ -23,7 +23,6 @@ body {
 	color: var(--foreground);
 	font-family: Montserrat, sans-serif;
 	overflow-y: scroll;
-	margin-right: 8px;
 }
 
 body::-webkit-scrollbar {
@@ -57,6 +56,9 @@ body.has-scroll::-webkit-scrollbar-thumb {
 }
 
 .slider-for-card {
+	& .swiper-slide {
+		will-change: transform;
+	}
 	/* & .swiper-wrapper {
 		height: 418px !important;
 		@media screen and (min-width: 768px) {
@@ -251,4 +253,28 @@ body.has-scroll::-webkit-scrollbar-thumb {
 	@media (max-height: 660px) {
 		gap: 30px;
 	}
+}
+
+/* skeleton-image */
+@keyframes shimmer {
+	0% {
+		background-position: 200% 0;
+	}
+	100% {
+		background-position: -200% 0;
+	}
+}
+.animate-shimmer {
+	animation: shimmer 1.5s linear infinite;
+}
+
+.dnd-dragging {
+	transition: all 300ms ease;
+}
+
+.dnd-placeholder {
+	background: rgba(0, 0, 0, 0.1);
+	border: 1px dashed #ccc;
+	border-radius: 13px;
+	z-index: 0;
 }

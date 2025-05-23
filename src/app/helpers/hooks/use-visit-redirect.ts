@@ -2,47 +2,30 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { useAuth } from '../contexts/auth-context'
 
 export function useVisitRedirect() {
 	const router = useRouter()
 	const pathname = usePathname()
-	const { user } = useAuth()
 	const [shouldRender, setShouldRender] = useState<boolean>(false)
-	const [isRedirecting, setIsRedirecting] = useState<boolean>(false)
 
 	useEffect(() => {
-		const hasVisitedForAuthUser = localStorage.getItem('hasVisitedForAuthUser')
+		const hasVisited = localStorage.getItem('hasVisited')
 
-		if (!user) {
-			console.log('Non-authenticated user, rendering:', pathname)
+		if (!hasVisited) {
+			// Первый визит: устанавливаем флаг и рендерим текущую страницу
+			console.log('First visit, rendering:', pathname)
+			localStorage.setItem('hasVisited', 'true')
 			setShouldRender(true)
-			return
-		}
-
-		if (!hasVisitedForAuthUser) {
-			console.log('First visit for authenticated user, rendering:', pathname)
-			localStorage.setItem('hasVisitedForAuthUser', 'true')
-			setShouldRender(true)
-		} else if (pathname === '/' && !isRedirecting) {
-			console.log(
-				'Authenticated user on root, redirecting to /selling-classifieds'
-			)
-			setIsRedirecting(true)
+		} else if (pathname === '/') {
+			// Повторный визит на '/': редирект на /selling-classifieds
+			console.log('Repeat visit on root, redirecting to /selling-classifieds')
 			router.replace('/selling-classifieds')
 		} else {
-			console.log('Authenticated user, rendering:', pathname)
+			// Повторный визит на другую страницу: рендерим
+			console.log('Repeat visit, rendering:', pathname)
 			setShouldRender(true)
 		}
-	}, [router, pathname, user, isRedirecting])
-
-	useEffect(() => {
-		if (isRedirecting && pathname === '/selling-classifieds') {
-			console.log('Redirect completed, rendering /selling-classifieds')
-			setIsRedirecting(false)
-			setShouldRender(true)
-		}
-	}, [pathname, isRedirecting])
+	}, [router, pathname])
 
 	return shouldRender
 }

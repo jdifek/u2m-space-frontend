@@ -54,7 +54,7 @@ export const ButtonWithIcon = ({
 					))}
 				</span>
 			)}
-			{text && <span>{text}</span>}
+			{text && <p>{text}</p>}
 		</>
 	)
 
@@ -62,6 +62,7 @@ export const ButtonWithIcon = ({
 		return (
 			<Link
 				href={href}
+				rel='preload'
 				className={` ${icon && iconStyles} ${baseStyles} ${
 					isHover && hover
 				} ${className} group select-none`}

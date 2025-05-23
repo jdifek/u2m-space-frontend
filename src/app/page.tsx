@@ -63,6 +63,7 @@ export default function Home() {
 								modules={[Pagination]}
 								spaceBetween={0}
 								slidesPerView={1}
+								speed={500}
 								pagination={SwiperPaginationService.paginationBase}
 								onSwiper={swiper => (swiperRef.current = swiper)}
 								onSlideChange={swiper => {
@@ -97,7 +98,8 @@ export default function Home() {
 										<IconCustom
 											name='arrow-next'
 											hover={true}
-											className='w-6 h-6 text-[#3486FE] stroke-none'
+											hoverColor='#f9329c'
+											className='w-6 h-6 text-[#3486FE] stroke-none group-hover:text-[#f9329c] group-focus:text-[#f9329c]'
 										/>
 									}
 									href='/selling-classifieds'
@@ -112,7 +114,8 @@ export default function Home() {
 										<IconCustom
 											name='arrow-next'
 											hover={true}
-											className='w-6 h-6 text-[#3486FE] stroke-none'
+											hoverColor='#f9329c'
+											className='w-6 h-6 text-[#3486FE] stroke-none group-hover:text-[#f9329c] group-focus:text-[#f9329c]'
 										/>
 									}
 									onClick={handleNextSlide}
@@ -128,9 +131,9 @@ export default function Home() {
 					<div className='home-content-wrapper max-sm:px-2 max-2xl:px-0 px-8 max-2xl:max-w-[443px] max-w-[1546px] mx-auto flex flex-col items-center md:justify-between md:gap-[100px] flex-grow'>
 						<div className='flex flex-col items-center justify-center text-center md:space-y-8'>
 							<Logo width={150} height={48} className='z-10' />
-							<h2 className='font-bold text-[24px] text-[#4f4f4f] leading-7 max-md:pt-7 max-md:pb-[15px]'>
+							<h1 className='font-bold text-[24px] text-[#4f4f4f] leading-7 max-md:pt-7 max-md:pb-[15px]'>
 								Hi there, <br /> I’m U2M Space
-							</h2>
+							</h1>
 							<p className='font-normal text-[16px] leading-6'>
 								Your new simpler, reliable way <br />
 								to exchange.
@@ -154,6 +157,7 @@ export default function Home() {
 									modules={[Pagination]}
 									spaceBetween={0}
 									slidesPerView={1}
+									speed={500}
 									pagination={SwiperPaginationService.paginationBase}
 									onSwiper={swiper => (swiperRef.current = swiper)}
 									onSlideChange={swiper => {
@@ -190,7 +194,8 @@ export default function Home() {
 							<IconCustom
 								name='arrow-next'
 								hover={true}
-								className='w-6 h-6 text-[#3486FE] stroke-none'
+								hoverColor='#f9329c'
+								className='w-6 h-6 text-[#3486FE] stroke-none group-hover:text-[#f9329c] group-focus:text-[#f9329c]'
 							/>
 						}
 						onClick={handleOpenSlider}
@@ -205,7 +210,8 @@ export default function Home() {
 							<IconCustom
 								name='arrow-next'
 								hover={true}
-								className='w-6 h-6 text-[#3486FE] stroke-none'
+								hoverColor='#f9329c'
+								className='w-6 h-6 text-[#3486FE] stroke-none group-hover:text-[#f9329c] group-focus:text-[#f9329c]'
 							/>
 						}
 						isHover

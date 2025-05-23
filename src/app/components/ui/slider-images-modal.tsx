@@ -8,7 +8,6 @@ import Image from 'next/image'
 import { IconCustom } from './icon-custom'
 import { SwiperPaginationService } from '@/app/services/swiper-pagination.service'
 import { ButtonWithIcon } from './button-with-icon'
-import { MdClose } from 'react-icons/md'
 
 interface SliderImagesModalProps {
 	isOpen: boolean
@@ -88,9 +87,10 @@ export const SliderImagesModal = ({
 						spaceBetween={60}
 						centeredSlides
 						grabCursor={true}
-						speed={800}
-						freeMode={false}
-						touchRatio={0.5}
+						speed={500}
+						freeMode={true}
+						touchRatio={1.5}
+						touchReleaseOnEdges
 						pagination={SwiperPaginationService.paginationForCard}
 						onInit={swiper => {
 							swiperRef.current = swiper
@@ -139,8 +139,9 @@ export const SliderImagesModal = ({
 							icon={
 								<IconCustom
 									name='close'
-									className='w-3 h-3 fill-none text-[#4f4f4f]'
+									className='w-3 h-3 fill-none text-[#4f4f4f] group-hover:text-[#f9329c] group-focus:text-[#f9329c]'
 									hover={true}
+									hoverColor='#f9329c]'
 								/>
 							}
 							isHover

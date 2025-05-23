@@ -17,7 +17,6 @@ import { AddPhotoButton } from '@/app/components/ui/add-photo-button'
 import { ImagePreview } from '@/app/components/ui/image-preview'
 import { AddPhotoSmallButton } from '@/app/components/ui/add-photo-small-button'
 import { Loader } from '@/app/components/ui/loader'
-import { Tooltip } from '@/app/components/ui/tooltip'
 
 export default function ClassifiedsEdit() {
 	const { user, logout } = useAuth()
@@ -38,10 +37,6 @@ export default function ClassifiedsEdit() {
 		title: false,
 		description: false,
 		price: false,
-		images: false,
-		tags: false,
-		save: false,
-		back: false,
 	})
 	const router = useRouter()
 	const params = useParams()
@@ -127,7 +122,6 @@ export default function ClassifiedsEdit() {
 			return updated
 		})
 
-		// Синхронизация
 		setExistingImages(prev => {
 			const updated = [...prev]
 			const [dragged] = updated.splice(dragIndex, 1)
@@ -149,14 +143,12 @@ export default function ClassifiedsEdit() {
 
 	const handleRemoveImage = (index: number) => {
 		setImagePreviews(prev => prev.filter((_, i) => i !== index))
-
 		setExistingImages(prev => {
 			if (index < prev.length) {
 				return prev.filter((_, i) => i !== index)
 			}
 			return prev
 		})
-
 		setImageFiles(prev => {
 			const adjustedIndex = index - existingImages.length
 			if (adjustedIndex >= 0) {
@@ -165,6 +157,53 @@ export default function ClassifiedsEdit() {
 			return prev
 		})
 	}
+
+	// const moveImage = (dragIndex: number, hoverIndex: number) => {
+	// 	setImagePreviews(prev => {
+	// 		const updated = [...prev]
+	// 		const [dragged] = updated.splice(dragIndex, 1)
+	// 		updated.splice(hoverIndex, 0, dragged)
+	// 		return updated
+	// 	})
+
+	// 	// Синхронизация
+	// 	setExistingImages(prev => {
+	// 		const updated = [...prev]
+	// 		const [dragged] = updated.splice(dragIndex, 1)
+	// 		updated.splice(hoverIndex, 0, dragged)
+	// 		return updated
+	// 	})
+
+	// 	setImageFiles(prev => {
+	// 		const updated = [...prev]
+	// 		const adjustedDragIndex = dragIndex - existingImages.length
+	// 		const adjustedHoverIndex = hoverIndex - existingImages.length
+	// 		if (adjustedDragIndex >= 0 && adjustedHoverIndex >= 0) {
+	// 			const [dragged] = updated.splice(adjustedDragIndex, 1)
+	// 			updated.splice(adjustedHoverIndex, 0, dragged)
+	// 		}
+	// 		return updated
+	// 	})
+	// }
+
+	// const handleRemoveImage = (index: number) => {
+	// 	setImagePreviews(prev => prev.filter((_, i) => i !== index))
+
+	// 	setExistingImages(prev => {
+	// 		if (index < prev.length) {
+	// 			return prev.filter((_, i) => i !== index)
+	// 		}
+	// 		return prev
+	// 	})
+
+	// 	setImageFiles(prev => {
+	// 		const adjustedIndex = index - existingImages.length
+	// 		if (adjustedIndex >= 0) {
+	// 			return prev.filter((_, i) => i !== adjustedIndex)
+	// 		}
+	// 		return prev
+	// 	})
+	// }
 
 	const handleSubmit = async (formData: {
 		title: string
@@ -246,8 +285,16 @@ export default function ClassifiedsEdit() {
 		return <div className='text-center mt-20'>Authorization required</div>
 	}
 
+	if (isLoading) {
+		return (
+			<div className='min-h-screen flex flex-col items-center justify-center'>
+				<Loader />
+			</div>
+		)
+	}
+
 	return (
-		<DndProvider backend={HTML5Backend}>
+		<DndProvider backend={HTML5Backend} options={{ enableMouseEvents: true }}>
 			<div className='min-h-screen flex flex-col'>
 				<div className='flex-1 pt-14 pb-10 md:pt-[88px] 2-5xl:pt-40!'>
 					<div className='flex max-md:flex-wrap-reverse max-md:mb-4 max-2-5xl:justify-start'>
@@ -261,7 +308,8 @@ export default function ClassifiedsEdit() {
 									<IconCustom
 										name='arrow-prev'
 										hover={true}
-										className='w-6 h-6 text-[#3486FE] fill-none'
+										hoverColor='#f9329c'
+										className='w-6 h-6 text-[#3486FE] fill-none group-hover:text-[#f9329c] group-focus:text-[#f9329c]'
 									/>
 								}
 								isHover
@@ -299,60 +347,35 @@ export default function ClassifiedsEdit() {
 					</div>
 
 					{/* контент создания продукта */}
-					{isLoading ? (
-						<div className='flex items-center justify-center'>
-							<Loader />
-						</div>
-					) : (
-						<div className='flex-1 w-full'>
-							<div className='md:px-8 xl:max-w-[1664px] mx-auto'>
-								<div className='grid grid-cols-4 sm:grid-cols-12 gap-8 min-[769px]:gap-8 xl:gap-[60px]'>
-									<div className='col-start-1 col-end-5 sm:col-start-1 sm:col-end-13'>
-										<div className='w-full lg:max-w-[855px] lg:mx-auto space-y-4'>
-											{error && (
-												<div className='text-red-500 text-[14px]'>{error}</div>
-											)}
 
-											<div className='grid grid-cols-12 gap-4 lg:grid-cols-6 lg:gap-[60px]'>
-												<div className='col-start-1 col-end-13 w-full lg:col-start-1 lg:col-end-5 lg:max-w-[487px]'>
-													{imagePreviews.length > 0 ? (
-														<ImageSlider
-															images={imagePreviews}
-															title={initialData?.title || ''}
-															onOpenModal={handleOpenModal}
-															className='slider-classified-info'
-														/>
-													) : (
-														<div className='relative max-md:px-4'>
-															<AddPhotoButton onChange={handleImageChange} />
-														</div>
-													)}
-													<div className='max-md:px-4'>
-														<div className='grid grid-cols-4 sm:grid-cols-12 lg:grid-cols-4 max-sm:px-3.5 max-sm:py-4 sm:p-8 gap-8'>
-															{/* моб */}
-															<div className='col-start-1 col-end-5 sm:col-start-3 sm:col-end-11 gap-8 lg:hidden'>
-																<div className='grid grid-cols-4 sm:grid-cols-12 gap-4 md:gap-8'>
-																	{Array.from({ length: 8 }).map((_, idx) =>
-																		idx < imagePreviews.length ? (
-																			<ImagePreview
-																				key={idx}
-																				src={imagePreviews[idx]}
-																				index={idx}
-																				moveImage={moveImage}
-																				onRemove={handleRemoveImage}
-																			/>
-																		) : (
-																			<AddPhotoSmallButton
-																				key={`btn-${idx}`}
-																				onChange={handleImageChange}
-																			/>
-																		)
-																	)}
-																</div>
-															</div>
+					<div className='flex-1 w-full'>
+						<div className='md:px-8 xl:max-w-[1664px] mx-auto'>
+							<div className='grid grid-cols-4 sm:grid-cols-12 gap-8 min-[769px]:gap-8 xl:gap-[60px]'>
+								<div className='col-start-1 col-end-5 sm:col-start-1 sm:col-end-13'>
+									<div className='w-full lg:max-w-[855px] lg:mx-auto space-y-4'>
+										{error && (
+											<div className='text-red-500 text-[14px]'>{error}</div>
+										)}
 
-															{/* десктоп */}
-															<div className='max-lg:hidden contents'>
+										<div className='grid grid-cols-12 gap-4 lg:grid-cols-6 lg:gap-[60px]'>
+											<div className='col-start-1 col-end-13 w-full lg:col-start-1 lg:col-end-5 lg:max-w-[487px]'>
+												{imagePreviews.length > 0 ? (
+													<ImageSlider
+														images={imagePreviews}
+														title={initialData?.title || ''}
+														onOpenModal={handleOpenModal}
+														className='slider-classified-info'
+													/>
+												) : (
+													<div className='relative max-md:px-4'>
+														<AddPhotoButton onChange={handleImageChange} />
+													</div>
+												)}
+												<div className='max-md:px-4'>
+													<div className='grid grid-cols-4 sm:grid-cols-12 lg:grid-cols-4 max-sm:px-3.5 max-sm:py-4 sm:p-8 gap-8'>
+														{/* моб */}
+														<div className='col-start-1 col-end-5 sm:col-start-3 sm:col-end-11 gap-8 lg:hidden'>
+															<div className='grid grid-cols-4 sm:grid-cols-12 gap-4 md:gap-8'>
 																{Array.from({ length: 8 }).map((_, idx) =>
 																	idx < imagePreviews.length ? (
 																		<ImagePreview
@@ -360,7 +383,14 @@ export default function ClassifiedsEdit() {
 																			src={imagePreviews[idx]}
 																			index={idx}
 																			moveImage={moveImage}
-																			onRemove={handleRemoveImage}
+																			onRemove={() => {
+																				setImagePreviews(prev =>
+																					prev.filter((_, i) => i !== idx)
+																				)
+																				setImageFiles(prev =>
+																					prev.filter((_, i) => i !== idx)
+																				)
+																			}}
 																		/>
 																	) : (
 																		<AddPhotoSmallButton
@@ -371,52 +401,79 @@ export default function ClassifiedsEdit() {
 																)}
 															</div>
 														</div>
+
+														{/* десктоп */}
+														<div className='max-lg:hidden contents'>
+															{Array.from({ length: 8 }).map((_, idx) =>
+																idx < imagePreviews.length ? (
+																	<ImagePreview
+																		key={idx}
+																		src={imagePreviews[idx]}
+																		index={idx}
+																		moveImage={moveImage}
+																		onRemove={() => {
+																			setImagePreviews(prev =>
+																				prev.filter((_, i) => i !== idx)
+																			)
+																			setImageFiles(prev =>
+																				prev.filter((_, i) => i !== idx)
+																			)
+																		}}
+																	/>
+																) : (
+																	<AddPhotoSmallButton
+																		key={`btn-${idx}`}
+																		onChange={handleImageChange}
+																	/>
+																)
+															)}
+														</div>
 													</div>
 												</div>
+											</div>
 
-												<div className='grid col-start-1 col-end-13 sm:col-start-4 sm:col-end-10 max-md:w-full max-[769px]:min-w-[300px] max-[769px]:w-fit max-md:ml-0! max-[769px]:ml-5 max-sm:px-4 lg:col-start-5 lg:col-end-8 lg:w-[300px] lg:min-w-fit'>
-													<ClassifiedForm
-														initialData={
-															initialData || {
-																title: '',
-																description: '',
-																price: '',
-															}
+											<div className='grid col-start-1 col-end-13 sm:col-start-4 sm:col-end-10 max-md:w-full max-[769px]:min-w-[300px] max-[769px]:w-fit max-md:ml-0! max-[769px]:ml-5 max-sm:px-4 lg:col-start-5 lg:col-end-8 lg:w-[300px] lg:min-w-fit'>
+												<ClassifiedForm
+													initialData={
+														initialData || {
+															title: '',
+															description: '',
+															price: '',
 														}
-														onSubmit={handleSubmit}
-														onMouseEnter={(
-															field: keyof typeof tooltipVisible
-														) => handleMouseEnter(field)}
-														onMouseLeave={(
-															field: keyof typeof tooltipVisible
-														) => handleMouseLeave(field)}
-														tooltipVisible={tooltipVisible}
-													/>
-												</div>
-											</div>
-											<div className='grid grid-cols-4 sm:grid-cols-12 lg:grid-cols-6 gap-4 md:gap-[60px] max-md:px-4'>
-												<div className='col-start-1 col-end-13 lg:col-start-1 lg:col-end-7 w-full relative'>
-													<TagsManager
-														onTagsChange={setTags}
-														initialTags={tags}
-													/>
-												</div>
-											</div>
-											<div className='hidden md:flex justify-end'>
-												<ButtonWithIcon
-													onClick={() =>
-														document.querySelector('form')?.requestSubmit()
 													}
-													text='Save'
-													className='min-w-[72px] w-fit h-10 px-4 bg-[#3486fe]! text-white rounded-lg'
+													onSubmit={handleSubmit}
+													onMouseEnter={(field: keyof typeof tooltipVisible) =>
+														handleMouseEnter(field)
+													}
+													onMouseLeave={(field: keyof typeof tooltipVisible) =>
+														handleMouseLeave(field)
+													}
+													tooltipVisible={tooltipVisible}
 												/>
 											</div>
+										</div>
+										<div className='grid grid-cols-4 sm:grid-cols-12 lg:grid-cols-6 gap-4 md:gap-[60px] max-md:px-4'>
+											<div className='col-start-1 col-end-13 lg:col-start-1 lg:col-end-7 w-full relative'>
+												<TagsManager
+													onTagsChange={setTags}
+													initialTags={tags}
+												/>
+											</div>
+										</div>
+										<div className='hidden md:flex justify-end'>
+											<ButtonWithIcon
+												onClick={() =>
+													document.querySelector('form')?.requestSubmit()
+												}
+												text='Save'
+												className='min-w-[72px] w-fit h-10 px-4 bg-[#3486fe]! text-white rounded-lg'
+											/>
 										</div>
 									</div>
 								</div>
 							</div>
 						</div>
-					)}
+					</div>
 				</div>
 				<SliderImagesModal
 					isOpen={isModalOpen}

@@ -1,6 +1,5 @@
 'use client'
 
-import { useVisitRedirect } from '@/app/helpers/hooks/use-visit-redirect'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 
@@ -20,11 +19,13 @@ export const Logo = ({
 	className,
 }: LogoProps) => {
 	const router = useRouter()
-	const shouldRender = useVisitRedirect()
+	const target =
+		typeof window !== 'undefined' && localStorage.getItem('hasVisited')
+			? '/selling-classifieds'
+			: '/'
 
 	const handleClick = () => {
-		localStorage.setItem('manualRedirect', 'true')
-		shouldRender ? router.push('/selling-classifieds') : router.push('/')
+		router.push(target)
 	}
 
 	return (
@@ -44,10 +45,7 @@ export const Logo = ({
 					/>
 				</div>
 			) : (
-				<div
-					onClick={handleClick}
-					className={`cursor-pointer select-none ${className}`}
-				>
+				<div className={`cursor-pointer select-none ${className}`}>
 					<Image
 						src={isSmall ? '/icons/logo-sm.svg' : '/icons/logo.svg'}
 						alt='logo image'

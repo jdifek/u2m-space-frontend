@@ -109,7 +109,6 @@ export default function ClassifiedsCreate() {
 		description: string
 		price: string
 	}) => {
-		console.log('handleSubmit called with:', formData)
 		console.log('handleSubmit called with:', formData, new Date().toISOString()) // Лог с временной меткой
 
 		setIsLoading(true)
@@ -120,7 +119,9 @@ export default function ClassifiedsCreate() {
 			formDataToSend.append('title', formData.title)
 			formDataToSend.append('description', formData.description)
 			formDataToSend.append('price', formData.price)
-			tags.forEach(tag => formDataToSend.append('tags[]', tag))
+			if (tags.length > 0) {
+				tags.forEach(tag => formDataToSend.append('tags[]', tag))
+			}
 			imageFiles.forEach(file => {
 				formDataToSend.append('images', file)
 			})
@@ -144,8 +145,6 @@ export default function ClassifiedsCreate() {
 					error.message ||
 					'Failed to create classified'
 			)
-		} finally {
-			setIsLoading(false)
 		}
 	}
 
@@ -189,64 +188,66 @@ export default function ClassifiedsCreate() {
 
 	return (
 		<DndProvider backend={HTML5Backend}>
-			<div className='min-h-screen flex flex-col'>
-				<div className='flex-1 pt-14 pb-10 md:pt-[88px] 2-5xl:pt-40!'>
-					<div className='flex max-md:flex-wrap-reverse max-md:mb-4 max-2-5xl:justify-start'>
-						{/* кнопки слева */}
-						<div className='flex max-md:items-center justify-between max-md:w-full 2-5xl:absolute 2-5xl:left-0 z-10'>
-							<ButtonWithIcon
-								onClick={handleBack}
-								text='Back'
-								iconWrapperClass='w-6 h-6'
-								icon={
-									<IconCustom
-										name='arrow-prev'
-										hover={true}
-										className='w-6 h-6 text-[#3486FE] fill-none'
-									/>
-								}
-								isHover
-								className='flex justify-center h-[88px] items-center min-w-[147px] w-fit'
-							/>
-
-							<div className='pr-4 md:hidden'>
+			{isLoading ? (
+				<div className='min-h-screen flex flex-col items-center justify-center'>
+					<Loader />
+				</div>
+			) : (
+				<div className='min-h-screen flex flex-col'>
+					<div className='flex-1 pt-14 pb-10 md:pt-[88px] 2-5xl:pt-40!'>
+						<div className='flex max-md:flex-wrap-reverse max-md:mb-4 max-2-5xl:justify-start'>
+							{/* кнопки слева */}
+							<div className='flex max-md:items-center justify-between max-md:w-full 2-5xl:absolute 2-5xl:left-0 z-10'>
 								<ButtonWithIcon
-									onClick={() =>
-										document.querySelector('form')?.requestSubmit()
+									onClick={handleBack}
+									text='Back'
+									iconWrapperClass='w-6 h-6'
+									icon={
+										<IconCustom
+											name='arrow-prev'
+											hover={true}
+											hoverColor='#f9329c'
+											className='w-6 h-6 text-[#3486FE] fill-none group-hover:text-[#f9329c] group-focus:text-[#f9329c]'
+										/>
 									}
-									text='Publish'
-									className='min-w-[95px] w-fit h-10 px-4 bg-[#3486fe]! text-white rounded-lg'
-									disabled={isPublishDisabled}
-									disableClass='text-white! bg-[#bdbdbd]!'
+									isHover
+									className='flex justify-center h-[88px] items-center min-w-[147px] w-fit'
+								/>
+
+								<div className='pr-4 md:hidden'>
+									<ButtonWithIcon
+										onClick={() =>
+											document.querySelector('form')?.requestSubmit()
+										}
+										text='Publish'
+										className='min-w-[95px] w-fit h-10 px-4 bg-[#3486fe]! text-white rounded-lg'
+										disabled={isPublishDisabled}
+										disableClass='text-white! bg-[#bdbdbd]!'
+									/>
+								</div>
+							</div>
+							<div className='flex max-md:w-full max-2-5xl:flex-wrap max-2-5xl:items-center max-md:mb-4 max-2-5xl:mb-8 max-md:pl-4 max-2-5xl:pl-8 max-2-5xl:py-6 max-sm:py-[11px] 2-5xl:absolute 2-5xl:pl-40 2-5xl:flex-col gap-4'>
+								<ButtonWithIcon
+									text='My Classifieds'
+									iconWrapperClass='w-6 h-6 flex items-center justify-center'
+									icon={
+										<IconCustom
+											name='plus'
+											className='w-6 h-6 fill-none text-white'
+										/>
+									}
+									className='w-fit min-w-[183px] h-10 flex flex-row-reverse items-center justify-center rounded-lg text-white bg-[#3486fe]!'
+								/>
+								<ButtonWithIcon
+									text='Logout'
+									onClick={logout}
+									className='w-fit min-w-[92px] h-10 flex items-center justify-center border border-[#4f4f4f] rounded-[8px] hover:border-[#f9329c] active:text-white active:bg-[#3486fe] active:border-[#3486fe]'
 								/>
 							</div>
 						</div>
-						<div className='flex max-md:w-full max-2-5xl:flex-wrap max-2-5xl:items-center max-md:mb-4 max-2-5xl:mb-8 max-md:pl-4 max-2-5xl:pl-8 max-2-5xl:py-6 max-sm:py-[11px] 2-5xl:absolute 2-5xl:pl-40 2-5xl:flex-col gap-4'>
-							<ButtonWithIcon
-								text='My Classifieds'
-								iconWrapperClass='w-6 h-6 flex items-center justify-center'
-								icon={
-									<IconCustom
-										name='plus'
-										className='w-6 h-6 fill-none text-white'
-									/>
-								}
-								className='w-fit min-w-[183px] h-10 flex flex-row-reverse items-center justify-center rounded-lg text-white bg-[#3486fe]!'
-							/>
-							<ButtonWithIcon
-								text='Logout'
-								onClick={logout}
-								className='w-fit min-w-[92px] h-10 flex items-center justify-center border border-[#4f4f4f] rounded-[8px] hover:border-[#f9329c] active:text-white active:bg-[#3486fe] active:border-[#3486fe]'
-							/>
-						</div>
-					</div>
 
-					{/* контент создания продукта */}
-					{isLoading ? (
-						<div className='flex items-center justify-center'>
-							<Loader />
-						</div>
-					) : (
+						{/* контент создания продукта */}
+
 						<div className='flex-1 w-full'>
 							<div className='md:px-8 xl:max-w-[1664px] mx-auto'>
 								<div className='grid grid-cols-4 sm:grid-cols-12 gap-8 min-[769px]:gap-8 xl:gap-[60px]'>
@@ -368,16 +369,17 @@ export default function ClassifiedsCreate() {
 								</div>
 							</div>
 						</div>
-					)}
+					</div>
+
+					<SliderImagesModal
+						isOpen={isModalOpen}
+						onClose={handleCloseModal}
+						images={imagePreviews}
+						title={classified?.title}
+						onSlideChange={index => setCurrentSlide(index)}
+					/>
 				</div>
-				<SliderImagesModal
-					isOpen={isModalOpen}
-					onClose={handleCloseModal}
-					images={classified?.images || []}
-					title={classified?.title}
-					onSlideChange={index => setCurrentSlide(index)}
-				/>
-			</div>
+			)}
 		</DndProvider>
 	)
 }
