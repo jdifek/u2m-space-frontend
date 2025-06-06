@@ -16,6 +16,7 @@ import { ClassifiedCard } from '@/components/ui/classified-card'
 import { SliderImagesModal } from '@/components/ui/slider-images-modal'
 import { useLocale } from 'next-intl'
 import { useTranslations } from 'use-intl'
+import { useLanguage } from '@/helpers/contexts/language-context'
 
 interface ApiError {
 	response?: {
@@ -43,7 +44,6 @@ export function ClientClassifiedDetail({
 	)
 	const [classifieds, setClassifieds] =
 		useState<Classified[]>(initialClassifieds)
-	const [activeCategory, setActiveCategory] = useState('Selling')
 	const [isLoading, setIsLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
 	const [isModalOpen, setIsModalOpen] = useState(false)
@@ -56,37 +56,53 @@ export function ClientClassifiedDetail({
 	)
 	const [page, setPage] = useState(1)
 	const { user } = useAuth()
+	const { selectedCurrency } = useLanguage()
 	const router = useRouter()
 	const locale = useLocale()
 	const tClassified = useTranslations('Classified')
 	const tSellingClassifieds = useTranslations('SellingClassifieds')
-	const tButtons = useTranslations('Buttons')
+	const [activeCategory, setActiveCategory] = useState(
+		tSellingClassifieds('tabs.selling')
+	)
 	const limit = 10
 
-	useEffect(() => {
-		const fetchClassified = async () => {
-			try {
-				setIsLoading(true)
-				setError(null)
-				console.log('Fetching classified, user:', user)
-				const data = await apiService.getClassifiedById(id)
-				console.log('getClassifiedById data:', data)
-				setClassified(data)
-				setFavoritesBool(data.favoritesBool)
-				setFavorites(data.favorites)
-				console.log('favoritesBool:', data.favoritesBool)
-			} catch (error: any) {
-				console.error('Error fetching classified:', error)
-				setError(
-					error.response?.status === 404
-						? 'Объявление не найдено'
-						: 'Не удалось загрузить объявление. Пожалуйста, попробуйте позже.'
-				)
-			} finally {
-				setIsLoading(false)
-			}
+	const fetchClassified = async () => {
+		try {
+			setIsLoading(true)
+			setError(null)
+			console.log('Fetching classified, user:', user)
+			const data = await apiService.getClassifiedById(id)
+			console.log('getClassifiedById data:', data)
+			setClassified(data)
+			setFavoritesBool(data.favoritesBool)
+			setFavorites(data.favorites)
+			console.log('favoritesBool:', data.favoritesBool)
+		} catch (error: any) {
+			console.error('Error fetching classified:', error)
+			setError(
+				error.response?.status === 404
+					? 'Объявление не найдено'
+					: 'Не удалось загрузить объявление. Пожалуйста, попробуйте позже.'
+			)
+		} finally {
+			setIsLoading(false)
 		}
+	}
 
+	const fetchClassifieds = async () => {
+		try {
+			setIsLoading(true)
+			const data = await apiService.getClassifieds({ page, limit })
+			console.log(data)
+			setClassifieds(prev => [...prev, ...data.classifieds])
+		} catch (error) {
+			console.error('Error fetching classifieds:', error)
+		} finally {
+			setIsLoading(false)
+		}
+	}
+
+	useEffect(() => {
 		if (!initialClassified) {
 			fetchClassified()
 		} else {
@@ -95,23 +111,16 @@ export function ClientClassifiedDetail({
 	}, [id, user, initialClassified])
 
 	useEffect(() => {
-		const fetchClassifieds = async () => {
-			try {
-				setIsLoading(true)
-				const data = await apiService.getClassifieds({ page, limit })
-				console.log(data)
-				setClassifieds(prev => [...prev, ...data.classifieds])
-			} catch (error) {
-				console.error('Error fetching classifieds:', error)
-			} finally {
-				setIsLoading(false)
-			}
-		}
-
 		if (page > 1 || initialClassifieds.length === 0) {
 			fetchClassifieds()
 		}
 	}, [page, initialClassifieds])
+
+	useEffect(() => {
+		fetchClassified() // Перезагружаем основное объявление
+		setClassifieds([]) // Сбрасываем похожие объявления
+		fetchClassifieds() // Загружаем новые похожие объявления
+	}, [selectedCurrency.code])
 
 	const handleFavoriteClick = async (e: React.MouseEvent) => {
 		if (!user) {
@@ -141,10 +150,6 @@ export function ClientClassifiedDetail({
 				console.error('Error toggling favorite:', error)
 			}
 		}
-	}
-
-	const handleBack = () => {
-		router.push(`${locale}/selling-classifieds`)
 	}
 
 	const handleOpenModal = () => {
@@ -205,30 +210,24 @@ export function ClientClassifiedDetail({
 		)
 	}
 
+	const symbol =
+		classified.convertedCurrency === 'USD'
+			? '$'
+			: classified.convertedCurrency === 'UAH'
+			? '₴'
+			: '€'
+
 	console.log('user data:', user)
 	console.log('classified user data id:', classified?.user.id)
+	console.log('concertedPrice:', classified.convertedPrice)
+	console.log('selectedCurrency:', selectedCurrency.code)
 
-	const isOwner = user && classified && user.id === classified.user.id
+	// const isOwner = user && classified && user.id === classified.user.id
 
 	return (
 		<div className='min-h-screen flex flex-col'>
 			<div className='flex-1 pt-14 pb-10 md:pt-[88px] 2-5xl:pt-40!'>
 				<div className='flex max-2-5xl:flex-col flex-wrap max-2-5xl:justify-center items-baseline w-full'>
-					<ButtonCustom
-						onClick={handleBack}
-						text={tButtons('back')}
-						iconWrapperClass='w-6 h-6'
-						icon={
-							<IconCustom
-								name='arrow-prev'
-								hover={true}
-								hoverColor='#f9329c'
-								className='w-6 h-6 text-[#3486FE] fill-none group-hover:text-[#f9329c] group-focus:text-[#f9329c]'
-							/>
-						}
-						isHover
-						className='flex justify-start px-8 py-2.5 min-w-[147px] w-fit h-[88px]'
-					/>
 					<div className='max-sm:hidden flex-1 flex justify-center w-full'>
 						<div className='pb-4 md:pb-8 flex flex-col items-center justify-center max-md:max-w-[768px] max-md:min-w-fit md:w-[768px] min-w-full'>
 							<CategoryTabs
@@ -269,7 +268,8 @@ export function ClientClassifiedDetail({
 												</h1>
 												<div className='flex items-center justify-between'>
 													<h2 className='text-[24px] font-bold uppercase tracking-[0.03em] text-[#f9329c]'>
-														${classified.price}
+														{symbol}
+														{classified.convertedPrice.toFixed(0)}
 													</h2>
 													<ButtonCustom
 														iconWrapperClass='w-6 h-6'
@@ -295,21 +295,20 @@ export function ClientClassifiedDetail({
 													{classified.description}
 												</p>
 												{/* информация показывается для авторизованного владельца своего объявления */}
-												{isOwner && (
-													<div className='flex flex-wrap gap-8'>
-														{INFO_AND_ANALYTICAL_DATA.map((item, index) => (
-															<div
-																key={index}
-																className='flex items-center gap-2'
-															>
-																<span className='w-6 h-6'>{item.icon}</span>
-																<p className='font-bold text-[13px] text-[#4f4f4f]'>
-																	{item.data}
-																</p>
-															</div>
-														))}
-													</div>
-												)}
+
+												<div className='flex flex-wrap gap-8'>
+													{INFO_AND_ANALYTICAL_DATA.map((item, index) => (
+														<div
+															key={index}
+															className='flex items-center gap-2'
+														>
+															<span className='w-6 h-6'>{item.icon}</span>
+															<p className='font-bold text-[13px] text-[#4f4f4f]'>
+																{item.data}
+															</p>
+														</div>
+													))}
+												</div>
 											</div>
 											{/* инфо о продавце */}
 											<div className='flex items-center gap-[30px]'>
@@ -387,23 +386,34 @@ export function ClientClassifiedDetail({
 								<div className='grid grid-cols-4 md:grid-cols-12 gap-0 mt-4 lg:mt-8'>
 									<div className='col-start-1 col-end-13'>
 										<div className='grid grid-cols-4 md:grid-cols-12 2xl:gap-[60px] xl:gap-[60px] lg:gap-[60px] min-[769px]:gap-8 gap-4 select-none'>
-											{classifieds.slice(0, 6).map((item, index) => (
-												<div
-													key={index}
-													className='col-span-2 md:col-span-4 lg:col-span-3 xl:col-span-3 2xl:col-span-2'
-												>
-													<ClassifiedCard
-														classifiedId={item.id}
-														title={item.title}
-														price={item.price.toFixed(2)}
-														image={item.images[0]}
-														favoritesBool={item.favoritesBool}
-														favorites={item.favorites}
-														href={`${locale}/selling-classifieds/${item.id}`}
-														isSmall={true}
-													/>
-												</div>
-											))}
+											{classifieds.slice(0, 6).map((item, index) => {
+												console.log(
+													'classifieds convertedPrice:',
+													item.convertedPrice
+												)
+												console.log(
+													'classifieds convertedCurrency:',
+													item.convertedCurrency
+												)
+												return (
+													<div
+														key={index}
+														className='col-span-2 md:col-span-4 lg:col-span-3 xl:col-span-3 2xl:col-span-2'
+													>
+														<ClassifiedCard
+															classifiedId={item.id}
+															title={item.title}
+															convertedPrice={item.convertedPrice}
+															convertedCurrency={item.convertedCurrency}
+															image={item.images[0]}
+															favoritesBool={item.favoritesBool}
+															favorites={item.favorites}
+															href={`/selling-classifieds/${item.id}`}
+															isSmall={true}
+														/>
+													</div>
+												)
+											})}
 										</div>
 									</div>
 								</div>
@@ -421,6 +431,7 @@ export function ClientClassifiedDetail({
 									touchRatio={1.5}
 									touchReleaseOnEdges
 									slidesOffsetBefore={16}
+									slidesOffsetAfter={16}
 									className='h-[300px] select-none'
 									breakpoints={{
 										320: {
@@ -440,6 +451,7 @@ export function ClientClassifiedDetail({
 											slidesPerView: 'auto',
 											spaceBetween: 32,
 											slidesOffsetBefore: 32,
+											slidesOffsetAfter: 32,
 										},
 									}}
 								>
@@ -451,11 +463,12 @@ export function ClientClassifiedDetail({
 											<ClassifiedCard
 												classifiedId={item.id}
 												title={item.title}
-												price={item.price.toFixed(2)}
+												convertedPrice={item.convertedPrice}
+												convertedCurrency={item.convertedCurrency}
 												image={item.images[0]}
 												favoritesBool={item.favoritesBool}
 												favorites={item.favorites}
-												href={`${locale}/selling-classifieds/${item.id}`}
+												href={`/selling-classifieds/${item.id}`}
 												isSmall={true}
 											/>
 										</SwiperSlide>

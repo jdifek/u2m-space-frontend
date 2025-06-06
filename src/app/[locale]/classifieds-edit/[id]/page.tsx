@@ -20,7 +20,8 @@ import { SliderImagesModal } from '@/components/ui/slider-images-modal'
 import { useRouter } from '@/i18n/routing'
 import { useTranslations } from 'next-intl'
 import { NavigationButtons } from '@/components/ui/navigation-buttons'
-import { useClassifiedForm } from '@/helpers/contexts/ClassifiedFormContext'
+import { useClassifiedForm } from '@/helpers/contexts/classified-form-context'
+import { ImageContextMenuModal } from '@/components/ui/image-context-menu-modal'
 
 export default function ClassifiedsEdit() {
 	const { user } = useAuth()
@@ -45,6 +46,10 @@ export default function ClassifiedsEdit() {
 		price: '',
 	})
 	const [isModalOpen, setIsModalOpen] = useState(false)
+	const [isContextMenuOpen, setIsContextMenuOpen] = useState(false)
+	const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(
+		null
+	)
 	const [isLoading, setIsLoading] = useState(true)
 	const [currentSlide, setCurrentSlide] = useState(0)
 	const [tooltipVisible, setTooltipVisible] = useState({
@@ -52,15 +57,11 @@ export default function ClassifiedsEdit() {
 		description: false,
 		price: false,
 	})
-	const tButtons = useTranslations('Buttons')
+
 	const tMyClassifieds = useTranslations('MyClassifieds')
 	const router = useRouter()
 	const params = useParams()
 	const id = params.id as string
-
-	const handleBack = () => {
-		window.history.back()
-	}
 
 	useEffect(() => {
 		const fetchClassified = async () => {
@@ -159,21 +160,32 @@ export default function ClassifiedsEdit() {
 		})
 	}
 
-	const handleRemoveImage = (index: number) => {
-		setImagePreviews(prev => prev.filter((_, i) => i !== index))
-		setExistingImages(prev => {
-			if (index < prev.length) {
-				return prev.filter((_, i) => i !== index)
-			}
-			return prev
+	const makeMainImage = (index: number) => {
+		if (index === 0) return // Уже главное фото
+		setImagePreviews(prev => {
+			const updated = [...prev]
+			const [selected] = updated.splice(index, 1)
+			updated.unshift(selected)
+			return updated
 		})
 		setImageFiles(prev => {
-			const adjustedIndex = index - existingImages.length
-			if (adjustedIndex >= 0) {
-				return prev.filter((_, i) => i !== adjustedIndex)
-			}
-			return prev
+			const updated = [...prev]
+			const [selected] = updated.splice(index, 1)
+			updated.unshift(selected)
+			return updated
 		})
+		setExistingImages(prev => {
+			const updated = [...prev]
+			const [selected] = updated.splice(index, 1)
+			updated.unshift(selected)
+			return updated
+		})
+	}
+
+	const deleteImage = (index: number) => {
+		setImagePreviews(prev => prev.filter((_, i) => i !== index))
+		setImageFiles(prev => prev.filter((_, i) => i !== index))
+		setExistingImages(prev => prev.filter((_, i) => i !== index))
 	}
 
 	// const moveImage = (dragIndex: number, hoverIndex: number) => {
@@ -294,6 +306,16 @@ export default function ClassifiedsEdit() {
 		setIsModalOpen(false)
 	}
 
+	const handleOpenContextMenu = (index: number) => {
+		setSelectedImageIndex(index)
+		setIsContextMenuOpen(true)
+	}
+
+	const handleCloseContextMenu = () => {
+		setIsContextMenuOpen(false)
+		setSelectedImageIndex(null)
+	}
+
 	const handleMouseEnter = (field: keyof typeof tooltipVisible) => {
 		setTooltipVisible(prev => ({ ...prev, [field]: true }))
 	}
@@ -357,31 +379,10 @@ export default function ClassifiedsEdit() {
 		<DndProvider backend={HTML5Backend} options={{ enableMouseEvents: true }}>
 			<div className='min-h-screen flex flex-col'>
 				<div className='flex-1 pt-14 pb-10 md:pt-[88px] 2-5xl:pt-40!'>
-					<div className='flex max-md:flex-wrap-reverse max-md:mb-4 max-2-5xl:justify-start'>
-						{/* кнопки слева */}
-						<div className='flex max-md:items-center justify-between max-md:w-full 2-5xl:absolute 2-5xl:left-0 z-10'>
-							<ButtonCustom
-								onClick={handleBack}
-								text={tButtons('back')}
-								iconWrapperClass='w-6 h-6'
-								icon={
-									<IconCustom
-										name='arrow-prev'
-										hover={true}
-										hoverColor='#f9329c'
-										className='w-6 h-6 text-[#3486FE] fill-none group-hover:text-[#f9329c] group-focus:text-[#f9329c]'
-									/>
-								}
-								isHover
-								className='flex justify-center h-[88px] items-center min-w-[147px] w-fit'
-							/>
-						</div>
-
-						<div className='max-md:mb-4 max-2-5xl:mb-8 max-md:pl-4 max-2-5xl:pl-8 max-2-5xl:py-6 max-sm:py-[11px] 2-5xl:absolute 2-5xl:pl-40 text-nowrap'>
-							<NavigationButtons
-								activePage={tMyClassifieds('buttons.myClassifieds')}
-							/>
-						</div>
+					<div className='max-2-5xl:mb-8'>
+						<NavigationButtons
+							activePage={tMyClassifieds('buttons.myClassifieds')}
+						/>
 					</div>
 
 					{/* контент создания продукта */}
@@ -405,7 +406,7 @@ export default function ClassifiedsEdit() {
 														className='slider-classified-info'
 													/>
 												) : (
-													<div className='relative max-md:px-4'>
+													<div className='relative max-md:p-4'>
 														<AddPhotoButton onChange={handleImageChange} />
 													</div>
 												)}
@@ -421,14 +422,8 @@ export default function ClassifiedsEdit() {
 																			src={imagePreviews[idx]}
 																			index={idx}
 																			moveImage={moveImage}
-																			onRemove={() => {
-																				setImagePreviews(prev =>
-																					prev.filter((_, i) => i !== idx)
-																				)
-																				setImageFiles(prev =>
-																					prev.filter((_, i) => i !== idx)
-																				)
-																			}}
+																			onRemove={() => deleteImage(idx)}
+																			onClick={() => handleOpenContextMenu(idx)}
 																		/>
 																	) : (
 																		<AddPhotoSmallButton
@@ -449,14 +444,7 @@ export default function ClassifiedsEdit() {
 																		src={imagePreviews[idx]}
 																		index={idx}
 																		moveImage={moveImage}
-																		onRemove={() => {
-																			setImagePreviews(prev =>
-																				prev.filter((_, i) => i !== idx)
-																			)
-																			setImageFiles(prev =>
-																				prev.filter((_, i) => i !== idx)
-																			)
-																		}}
+																		onRemove={() => deleteImage(idx)}
 																	/>
 																) : (
 																	<AddPhotoSmallButton
@@ -485,7 +473,7 @@ export default function ClassifiedsEdit() {
 												/>
 											</div>
 										</div>
-										<div className='grid grid-cols-4 sm:grid-cols-12 lg:grid-cols-6 gap-4 md:gap-[60px] max-md:px-4'>
+										<div className='grid grid-cols-4 sm:grid-cols-12 lg:grid-cols-6 gap-4 md:gap-[60px] max-md:px-4 max-md:pb-4 max-xl:pb-8'>
 											<div className='col-start-1 col-end-13 lg:col-start-1 lg:col-end-7 w-full relative'>
 												<TagsManager
 													onTagsChange={setTags}
@@ -505,6 +493,16 @@ export default function ClassifiedsEdit() {
 					images={imagePreviews}
 					title={initialData?.title}
 					onSlideChange={index => setCurrentSlide(index)}
+				/>
+				<ImageContextMenuModal
+					isOpen={isContextMenuOpen}
+					onClose={handleCloseContextMenu}
+					onMakeMain={() =>
+						selectedImageIndex !== null && makeMainImage(selectedImageIndex)
+					}
+					onDelete={() =>
+						selectedImageIndex !== null && deleteImage(selectedImageIndex)
+					}
 				/>
 			</div>
 		</DndProvider>

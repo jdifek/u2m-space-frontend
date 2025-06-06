@@ -8,8 +8,6 @@ import { useAuth } from '@/helpers/contexts/auth-context'
 import { Classified } from '@/types'
 import { apiService } from '@/services/api.service'
 import { Loader } from '@/components/ui/loader'
-import { ButtonCustom } from '@/components/ui/button-custom'
-import { IconCustom } from '@/components/ui/icon-custom'
 import { ImageSlider } from '@/components/ui/image-slider'
 import { AddPhotoButton } from '@/components/ui/add-photo-button'
 import { ImagePreview } from '@/components/ui/image-preview'
@@ -20,16 +18,21 @@ import { SliderImagesModal } from '@/components/ui/slider-images-modal'
 import { useRouter } from '@/i18n/routing'
 import { useTranslations } from 'next-intl'
 import { NavigationButtons } from '@/components/ui/navigation-buttons'
-import { useClassifiedForm } from '@/helpers/contexts/ClassifiedFormContext'
+import { useClassifiedForm } from '@/helpers/contexts/classified-form-context'
+import { ImageContextMenuModal } from '@/components/ui/image-context-menu-modal'
 
 export default function ClassifiedsCreate() {
-	const { user, logout } = useAuth()
+	const { user } = useAuth()
 	const { setFormState, isFormValid, setIsFormValid } = useClassifiedForm()
 	const [imagePreviews, setImagePreviews] = useState<string[]>([])
 	const [classified, setClassified] = useState<Classified | null>(null)
 	const [imageFiles, setImageFiles] = useState<File[]>([])
 	const [tags, setTags] = useState<string[]>([])
 	const [isModalOpen, setIsModalOpen] = useState(false)
+	const [isContextMenuOpen, setIsContextMenuOpen] = useState(false)
+	const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(
+		null
+	)
 	const [isLoading, setIsLoading] = useState(false)
 	const [currentSlide, setCurrentSlide] = useState(0)
 	const [error, setError] = useState<string>('')
@@ -47,13 +50,8 @@ export default function ClassifiedsCreate() {
 		description: '',
 		price: '',
 	})
-	const tButtons = useTranslations('Buttons')
 	const tMyClassifieds = useTranslations('MyClassifieds')
 	const router = useRouter()
-
-	const handleBack = () => {
-		window.history.back()
-	}
 
 	const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		const files = e.target.files
@@ -114,6 +112,27 @@ export default function ClassifiedsCreate() {
 		})
 	}
 
+	const makeMainImage = (index: number) => {
+		if (index === 0) return // Уже главное фото
+		setImagePreviews(prev => {
+			const updated = [...prev]
+			const [selected] = updated.splice(index, 1)
+			updated.unshift(selected)
+			return updated
+		})
+		setImageFiles(prev => {
+			const updated = [...prev]
+			const [selected] = updated.splice(index, 1)
+			updated.unshift(selected)
+			return updated
+		})
+	}
+
+	const deleteImage = (index: number) => {
+		setImagePreviews(prev => prev.filter((_, i) => i !== index))
+		setImageFiles(prev => prev.filter((_, i) => i !== index))
+	}
+
 	const handleSubmit = useCallback(
 		async (formData: { title: string; description: string; price: string }) => {
 			console.log(
@@ -170,6 +189,16 @@ export default function ClassifiedsCreate() {
 		setIsModalOpen(false)
 	}
 
+	const handleOpenContextMenu = (index: number) => {
+		setSelectedImageIndex(index)
+		setIsContextMenuOpen(true)
+	}
+
+	const handleCloseContextMenu = () => {
+		setIsContextMenuOpen(false)
+		setSelectedImageIndex(null)
+	}
+
 	const handleMouseEnter = (field: keyof typeof tooltipVisible) => {
 		setTooltipVisible(prev => ({ ...prev, [field]: true }))
 	}
@@ -216,8 +245,6 @@ export default function ClassifiedsCreate() {
 		})
 	}, [isFormValid, imageFiles, setFormState, handleSubmit])
 
-	const isPublishDisabled = !isFormValid || imageFiles.length === 0
-
 	if (!user) {
 		return <div className='text-center mt-20'>Authorization required</div>
 	}
@@ -231,31 +258,10 @@ export default function ClassifiedsCreate() {
 			) : (
 				<div className='min-h-screen flex flex-col'>
 					<div className='flex-1 pt-14 pb-10 md:pt-[88px] 2-5xl:pt-40!'>
-						<div className='flex max-md:flex-wrap-reverse max-md:mb-4 max-2-5xl:justify-start'>
-							{/* кнопки слева */}
-							<div className='flex max-md:items-center justify-between max-md:w-full 2-5xl:absolute 2-5xl:left-0 z-10'>
-								<ButtonCustom
-									onClick={handleBack}
-									text={tButtons('back')}
-									iconWrapperClass='w-6 h-6'
-									icon={
-										<IconCustom
-											name='arrow-prev'
-											hover={true}
-											hoverColor='#f9329c'
-											className='w-6 h-6 text-[#3486FE] fill-none group-hover:text-[#f9329c] group-focus:text-[#f9329c]'
-										/>
-									}
-									isHover
-									className='flex justify-center h-[88px] items-center min-w-[147px] w-fit'
-								/>
-							</div>
-
-							<div className='max-md:mb-4 max-2-5xl:mb-8 max-md:pl-4 max-2-5xl:pl-8 max-2-5xl:py-6 max-sm:py-[11px] 2-5xl:absolute 2-5xl:pl-40 text-nowrap'>
-								<NavigationButtons
-									activePage={tMyClassifieds('buttons.myClassifieds')}
-								/>
-							</div>
+						<div className='max-2-5xl:mb-8'>
+							<NavigationButtons
+								activePage={tMyClassifieds('buttons.myClassifieds')}
+							/>
 						</div>
 
 						{/* контент создания продукта */}
@@ -279,7 +285,7 @@ export default function ClassifiedsCreate() {
 															className='slider-classified-info'
 														/>
 													) : (
-														<div className='relative max-md:px-4'>
+														<div className='relative max-md:p-4'>
 															<AddPhotoButton onChange={handleImageChange} />
 														</div>
 													)}
@@ -296,14 +302,10 @@ export default function ClassifiedsCreate() {
 																				src={imagePreviews[idx]}
 																				index={idx}
 																				moveImage={moveImage}
-																				onRemove={() => {
-																					setImagePreviews(prev =>
-																						prev.filter((_, i) => i !== idx)
-																					)
-																					setImageFiles(prev =>
-																						prev.filter((_, i) => i !== idx)
-																					)
-																				}}
+																				onRemove={() => deleteImage(idx)}
+																				onClick={() =>
+																					handleOpenContextMenu(idx)
+																				}
 																			/>
 																		) : (
 																			<AddPhotoSmallButton
@@ -324,14 +326,7 @@ export default function ClassifiedsCreate() {
 																			src={imagePreviews[idx]}
 																			index={idx}
 																			moveImage={moveImage}
-																			onRemove={() => {
-																				setImagePreviews(prev =>
-																					prev.filter((_, i) => i !== idx)
-																				)
-																				setImageFiles(prev =>
-																					prev.filter((_, i) => i !== idx)
-																				)
-																			}}
+																			onRemove={() => deleteImage(idx)}
 																		/>
 																	) : (
 																		<AddPhotoSmallButton
@@ -360,7 +355,7 @@ export default function ClassifiedsCreate() {
 													/>
 												</div>
 											</div>
-											<div className='grid grid-cols-4 sm:grid-cols-12 lg:grid-cols-6 gap-4 md:gap-[60px] max-md:px-4'>
+											<div className='grid grid-cols-4 sm:grid-cols-12 lg:grid-cols-6 gap-4 md:gap-[60px] max-md:px-4 max-md:pb-4 max-xl:pb-8'>
 												<div className='col-start-1 col-end-13 lg:col-start-1 lg:col-end-7 w-full relative'>
 													<TagsManager onTagsChange={setTags} />
 												</div>
@@ -378,6 +373,16 @@ export default function ClassifiedsCreate() {
 						images={imagePreviews}
 						title={classified?.title}
 						onSlideChange={index => setCurrentSlide(index)}
+					/>
+					<ImageContextMenuModal
+						isOpen={isContextMenuOpen}
+						onClose={handleCloseContextMenu}
+						onMakeMain={() =>
+							selectedImageIndex !== null && makeMainImage(selectedImageIndex)
+						}
+						onDelete={() =>
+							selectedImageIndex !== null && deleteImage(selectedImageIndex)
+						}
 					/>
 				</div>
 			)}

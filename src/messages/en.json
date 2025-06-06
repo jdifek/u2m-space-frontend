@@ -50,6 +50,8 @@
 		"tags": "Tags",
 		"addTag": "Add tag",
 		"recommendedTags": "Recommended tags",
+		"setTheMain": "Set the main",
+		"delete": "Delete",
 		"formInputs": {
 			"title": "Title",
 			"description": "Description",
@@ -213,7 +215,7 @@
 		"chooseLanguageRegion": {
 			"title": "Choose language and region",
 			"english": "English",
-			"unitedKingdom": "United Kingdom",
+			"unitedStates": "United States",
 			"ukrainian": "Ukrainian",
 			"ukraine": "Ukraine",
 			"polish": "Polish",
@@ -263,7 +265,49 @@
 			"imLookingFor": "I'm looking for..."
 		},
 		"inputs": {
-			"error": "Character limit reached"
+			"error": "Character limit reached",
+			"noCitiesFound": "No cities found"
+		}
+	},
+	"DatePicker": {
+		"month": "Month",
+		"year": "Year",
+		"months": {
+			"january": "January",
+			"february": "February",
+			"march": "March",
+			"april": "April",
+			"may": "May",
+			"june": "June",
+			"july": "July",
+			"august": "August",
+			"september": "September",
+			"october": "October",
+			"november": "November",
+			"december": "December"
+		},
+		"monthsShort": {
+			"january": "Jan",
+			"february": "Feb",
+			"march": "Mar",
+			"april": "Apr",
+			"may": "May",
+			"june": "Jun",
+			"july": "Jul",
+			"august": "Aug",
+			"september": "Sep",
+			"october": "Oct",
+			"november": "Nov",
+			"december": "Dec"
+		},
+		"weekDays": {
+			"monday": "Mo",
+			"tuesday": "Tu",
+			"wednesday": "We",
+			"thursday": "Th",
+			"friday": "Fr",
+			"saturday": "Sa",
+			"sunday": "Sa"
 		}
 	}
 }
