@@ -142,6 +142,8 @@
 		"informationFormInputs": {
 			"yourNickname": "Your nickname",
 			"errorNickname": "more than 3 characters are needed",
+			"errorNicknameRequired": "Nickname is required",
+			"errorNicknameFormat": "Nickname can only contain letters, numbers, and underscores",
 			"infoNickname": "Your nickname (Shown instead of Full Name)",
 			"documentName": "Document Name",
 			"documentNameDescr": "Name indicated on the passport, driver’s license or other travel document.",
@@ -152,6 +154,10 @@
 			"female": "female",
 			"birthday": "Date of Birth",
 			"emailAddress": "Email Address",
+			"errorEmailRequired": "Email is required",
+			"errorEmail": "Invalid email format",
+			"errorPhoneRequired": "Phone number is required",
+			"errorPhoneNumber": "Invalid phone number format",
 			"phoneNumber": "Phone number",
 			"extraPhoneNumber": "Extra phone number",
 			"month": "Month",
@@ -308,6 +314,18 @@
 			"friday": "Fr",
 			"saturday": "Sa",
 			"sunday": "Sa"
+		}
+	},
+	"Metadata": {
+		"title": {
+			"uk": "Маркетплейс обміну, продажу та аукціонів речей",
+			"en": "Marketplace for Trading, Selling & Auctions of Items",
+			"pl": "Marketplace do wymiany, sprzedaży i aukcji przedmiotów"
+		},
+		"description": {
+			"uk": "Універсальний маркетплейс для продажу, обміну та аукціонів нових і вживаних речей. Безпечно, зручно та вигідно — приєднуйтесь зараз!",
+			"en": "A universal marketplace to sell, trade or auction new and used items. Safe, easy and profitable — join now and start exchanging!",
+			"pl": "Uniwersalny marketplace do sprzedaży, wymiany i aukcji nowych i używanych rzeczy. Bezpiecznie, wygodnie i korzystnie — dołącz już teraz!"
 		}
 	}
 }

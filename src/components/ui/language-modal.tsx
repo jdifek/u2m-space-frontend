@@ -12,63 +12,24 @@ import { CustomSearchSelect } from './custom-search-select'
 import { cityService } from '@/services/cities.service'
 import { useLanguage } from '@/helpers/contexts/language-context'
 import { useAuth } from '@/helpers/contexts/auth-context'
-
-interface CityOption {
-	id: number
-	name: string
-}
-
-// interface LanguageButtonItem {
-// 	language: string
-// 	country: string
-// 	languageCode: 'en' | 'uk' | 'pl'
-// 	countryCode: 'US' | 'UA' | 'PL'
-// }
-
-// const LANGUAGE_BTN_ITEMS: LanguageButtonItem[] = [
-// 	{
-// 		language: 'English',
-// 		country: 'United States',
-// 		languageCode: 'en',
-// 		countryCode: 'US',
-// 	},
-// 	{
-// 		language: 'Українська',
-// 		country: 'Україна',
-// 		languageCode: 'uk',
-// 		countryCode: 'UA',
-// 	},
-// 	{
-// 		language: 'Polski',
-// 		country: 'Polska',
-// 		languageCode: 'pl',
-// 		countryCode: 'PL',
-// 	},
-// ]
-
-// const CURRENCY_BTN_ITEMS = [
-// 	{
-// 		name: 'Американський долар',
-// 		symbol: 'USD – $',
-// 	},
-// 	{
-// 		name: 'Українська гривня',
-// 		symbol: 'UAH – ₴',
-// 	},
-// 	{
-// 		name: 'Євро',
-// 		symbol: 'EUR – €',
-// 	},
-// ]
+import { useUser } from '@/helpers/contexts/user-context'
+import { apiService } from '@/services/api.service'
+import { CityOption } from '@/types'
+import { handleApiError } from '@/helpers/functions/handle-api-error'
 
 export const LanguageModal = () => {
 	const [isLoading, setIsLoading] = useState<boolean>(false)
 	const [error, setError] = useState<string | null>(null)
-	const [formData, setFormData] = useState({
+	const [formData, setFormData] = useState<{
+		city: string
+		cityId: number
+		countryCode: 'US' | 'UA' | 'PL'
+		languageCode: 'en' | 'uk' | 'pl'
+	}>({
 		city: '',
 		cityId: 0,
 		countryCode: 'US',
-		languageCode: 'en' as 'en' | 'uk' | 'pl',
+		languageCode: 'en',
 	})
 	const [cities, setCities] = useState<CityOption[]>([])
 	const { handleOverlayClick, closeModal } = useModal()
@@ -80,7 +41,7 @@ export const LanguageModal = () => {
 		setLanguage,
 		setCurrency,
 	} = useLanguage()
-	const { user } = useAuth()
+	const { user, updateUser } = useUser()
 	const router = useRouter()
 	const pathname = usePathname()
 	const localActive = useLocale() as 'en' | 'uk' | 'pl'
@@ -100,13 +61,17 @@ export const LanguageModal = () => {
 	useEffect(() => {
 		setFormData(prev => ({
 			...prev,
-			languageCode: localActive,
+			languageCode: user?.language || localActive,
+			countryCode:
+				user?.language === 'en' ? 'US' : user?.language === 'uk' ? 'UA' : 'PL',
+			city: user?.city || '',
+			cityId: 0,
 		}))
 
 		const loadCities = async () => {
 			try {
 				setIsLoading(true)
-				const fetchedCities = cityService.fetchAllCities(localActive)
+				const fetchedCities = await cityService.fetchAllCities(localActive)
 				setCities(fetchedCities)
 				setError(null)
 			} catch (error) {
@@ -116,7 +81,7 @@ export const LanguageModal = () => {
 			}
 		}
 		loadCities()
-	}, [localActive, tLanguageModal])
+	}, [localActive, tLanguageModal, user])
 
 	// const changeLanguage = (
 	// 	nextLocale: string,
@@ -137,13 +102,57 @@ export const LanguageModal = () => {
 
 	// Обработка выбора города
 
-	const handleCityChange = (cityName: string) => {
+	const handleCityChange = async (cityName: string) => {
 		const selectedCity = cities.find(city => city.name === cityName)
 		setFormData({
 			...formData,
 			city: cityName,
 			cityId: selectedCity ? selectedCity.id : 0,
 		})
+
+		if (user && cityName) {
+			try {
+				setIsLoading(true)
+				const updateData = { city: cityName || null }
+				const updatedUser = await apiService.updateUserProfile(
+					user.id,
+					updateData
+				)
+				updateUser(updatedUser)
+			} catch (error: any) {
+				setError(
+					error.response?.data?.error || tLanguageModal('errors.serverError')
+				)
+			} finally {
+				setIsLoading(false)
+			}
+		}
+	}
+
+	const handleLanguageChange = async (
+		languageCode: 'en' | 'uk' | 'pl',
+		countryCode: 'US' | 'UA' | 'PL'
+	) => {
+		setIsLoading(true)
+		try {
+			await setLanguage(languageCode, countryCode)
+		} catch (error) {
+			setError(handleApiError(error, tLanguageModal('errors.serverError')))
+		} finally {
+			setIsLoading(false)
+		}
+	}
+
+	const handleCurrencyChange = async (currencyCode: 'USD' | 'UAH' | 'EUR') => {
+		if (!user) return
+		setIsLoading(true)
+		try {
+			await setCurrency(currencyCode)
+		} catch (error) {
+			setError(handleApiError(error, tLanguageModal('errors.serverError')))
+		} finally {
+			setIsLoading(false)
+		}
 	}
 
 	const handleClose = () => {
@@ -187,9 +196,14 @@ export const LanguageModal = () => {
 									<div
 										key={index}
 										onClick={() =>
-											setLanguage(item.languageCode, item.countryCode)
+											handleLanguageChange(item.languageCode, item.countryCode)
 										}
-										className='min-w-[216px] w-fit h-[74px] text-[16px] p-4 font-bold text-[#4f4f4f] border border-[#bdbdbd] rounded-[13px] hover:border-[#f9329c] active:bg-[#F7F7F7] transition-colors cursor-pointer'
+										className={`min-w-[216px] w-fit h-[74px] text-[16px] p-4 font-bold text-[#4f4f4f] border border-[#bdbdbd] rounded-[13px] active:border-[#f9329c] hover:bg-[#F7F7F7] transition-colors cursor-pointer ${
+											selectedLanguage.languageCode === item.languageCode &&
+											selectedLanguage.countryCode === item.countryCode
+												? 'border-[#f9329c]'
+												: ''
+										}`}
 									>
 										<p className='font-bold text-[16px] text-[#4F4F4F] leading-[18px]'>
 											{item.language}
@@ -222,14 +236,14 @@ export const LanguageModal = () => {
 								{currencyOptions.map((item, index) => (
 									<div
 										key={index}
-										onClick={() => user && setCurrency(item.code)}
+										onClick={() => handleCurrencyChange(item.code)}
 										className={`min-w-[216px] w-fit ${
 											item.code === 'USD' ? 'h-[94px]' : 'h-[74px]'
-										} p-4 text-[16px] font-bold text-[#4f4f4f] border border-[#bdbdbd] rounded-[13px] hover:border-[#f9329c] active:bg-[#F7F7F7] transition-colors cursor-pointer ${
+										} p-4 text-[16px] font-bold text-[#4f4f4f] border border-[#bdbdbd] rounded-[13px] active:border-[#f9329c] hover:bg-[#F7F7F7] transition-colors cursor-pointer ${
 											selectedCurrency.code === item.code
-												? ''
-												: 'border-[#bdbdbd] hover:border-[#f9329c] active:bg-[#F7F7F7]'
-										} ${!user ? 'opacity-50 cursor-not-allowed' : ''}`}
+												? 'border-[#f9329c]'
+												: ''
+										} `}
 									>
 										<p className='font-bold text-[16px] text-[#4F4F4F] leading-[18px]'>
 											{item.name}

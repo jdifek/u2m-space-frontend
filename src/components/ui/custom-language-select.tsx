@@ -3,24 +3,28 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { IconCustom } from './icon-custom'
+import { LanguageOption } from '@/helpers/contexts/language-context'
 
-interface CustomSelectProps {
+interface CustomLanguageSelectProps {
 	label: string
-	options: string[]
-	value: string
-	onChange: (value: string) => void
+	options: LanguageOption[]
+	value: 'en' | 'uk' | 'pl'
+	onChange: (
+		languageCode: 'en' | 'uk' | 'pl',
+		countryCode: 'US' | 'UA' | 'PL'
+	) => void
 	onClick?: () => void
 	onOpenChange?: (isOpen: boolean) => void
 }
 
-export const CustomSelect = ({
+export const CustomLanguageSelect = ({
 	label,
 	options,
 	value,
 	onChange,
 	onClick,
 	onOpenChange,
-}: CustomSelectProps) => {
+}: CustomLanguageSelectProps) => {
 	const [isOpen, setIsOpen] = useState(false)
 	const [isFocused, setIsFocused] = useState(false)
 	const [isMobile, setIsMobile] = useState(false)
@@ -115,10 +119,14 @@ export const CustomSelect = ({
 		onClick?.()
 	}
 
-	const handleOptionClick = (option: string, e: React.MouseEvent) => {
+	const handleOptionClick = (
+		languageCode: 'en' | 'uk' | 'pl',
+		countryCode: 'US' | 'UA' | 'PL',
+		e: React.MouseEvent
+	) => {
 		e.preventDefault()
 		e.stopPropagation()
-		onChange(option)
+		onChange(languageCode, countryCode)
 		setIsOpen(false)
 		setShowAsModal(false)
 		setIsFocused(true)
@@ -129,17 +137,26 @@ export const CustomSelect = ({
 		<>
 			{options.map(option => (
 				<div
-					key={option}
-					className={`p-4 text-[16px] font-bold text-[#4f4f4f] cursor-pointer hover:bg-[#F7F7F7] ${
-						value === option ? 'bg-[#F7F7F7]' : ''
+					key={option.languageCode}
+					className={`p-4 text-[16px] cursor-pointer hover:bg-[#F7F7F7] ${
+						value === option.languageCode ? 'bg-[#F7F7F7]' : ''
 					}`}
-					onClick={e => handleOptionClick(option, e)}
+					onClick={e =>
+						handleOptionClick(option.languageCode, option.countryCode, e)
+					}
 				>
-					{option}
+					<p className='font-bold text-[16px] text-[#4F4F4F] leading-[18px]'>
+						{option.language}
+					</p>
+					<p className='font-normal text-[14px] text-[#4F4F4F] leading-[18px]'>
+						{option.country}
+					</p>
 				</div>
 			))}
 		</>
 	)
+
+	const selectedOption = options.find(opt => opt.languageCode === value)
 
 	const renderNormalDropdown = () => (
 		<motion.div
@@ -157,7 +174,16 @@ export const CustomSelect = ({
 						: 'top-9 left-2 text-[#4f4f4f]'
 				}`}
 			>
-				{value || label}
+				{selectedOption ? (
+					<p className='font-bold text-[16px]'>
+						{selectedOption.language} -{' '}
+						<span className='font-normal text-[14px]'>
+							{selectedOption.country}
+						</span>
+					</p>
+				) : (
+					label
+				)}
 			</label>
 			<div
 				id={`${label.toLowerCase()}-select`}
@@ -201,7 +227,16 @@ export const CustomSelect = ({
 						isOpen ? 'text-transparent' : 'text-[#4f4f4f] '
 					}`}
 				>
-					{value || label}
+					{selectedOption ? (
+						<p className='font-bold text-[16px]'>
+							{selectedOption.language} -{' '}
+							<span className='font-normal text-[14px]'>
+								{selectedOption.country}
+							</span>
+						</p>
+					) : (
+						label
+					)}
 				</label>
 
 				{/* Select input */}

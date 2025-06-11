@@ -5,7 +5,6 @@ import { Swiper, SwiperSlide } from 'swiper/react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Classified } from '@/types'
-import { useAuth } from '@/helpers/contexts/auth-context'
 import { apiService } from '@/services/api.service'
 import { IconCustom } from '@/components/ui/icon-custom'
 import { Loader } from '@/components/ui/loader'
@@ -17,6 +16,8 @@ import { SliderImagesModal } from '@/components/ui/slider-images-modal'
 import { useLocale } from 'next-intl'
 import { useTranslations } from 'use-intl'
 import { useLanguage } from '@/helpers/contexts/language-context'
+import { useUser } from '@/helpers/contexts/user-context'
+import { formatPhoneNumber } from '@/helpers/functions/format-phone-number'
 
 interface ApiError {
 	response?: {
@@ -55,7 +56,7 @@ export function ClientClassifiedDetail({
 		initialClassified?.favorites || 0
 	)
 	const [page, setPage] = useState(1)
-	const { user } = useAuth()
+	const { user, updateFavorites } = useUser()
 	const { selectedCurrency } = useLanguage()
 	const router = useRouter()
 	const locale = useLocale()
@@ -142,6 +143,7 @@ export function ClientClassifiedDetail({
 						  }
 						: prev
 				)
+				updateFavorites(classified.id, res.favoritesBool)
 			}
 		} catch (error: unknown) {
 			const apiError = error as ApiError
@@ -202,7 +204,7 @@ export function ClientClassifiedDetail({
 		},
 	]
 
-	if (isLoading || !classified) {
+	if (isLoading || !classified || !user) {
 		return (
 			<div className='min-h-screen flex flex-col items-center justify-center'>
 				<Loader />
@@ -294,7 +296,6 @@ export function ClientClassifiedDetail({
 												<p className='text-[16px] font-normal text-[#4f4f4f]'>
 													{classified.description}
 												</p>
-												{/* информация показывается для авторизованного владельца своего объявления */}
 
 												<div className='flex flex-wrap gap-8'>
 													{INFO_AND_ANALYTICAL_DATA.map((item, index) => (
@@ -333,24 +334,28 @@ export function ClientClassifiedDetail({
 												<div className='space-y-4'>
 													<div className='flex sm:items-center sm:gap-8'>
 														<h2 className='text-[18px] font-bold uppercase tracking-[0.03em] text-[#4f4f4f]'>
-															{classified.user.name}
+															{user!.nickname}
 														</h2>
 														<div className='max-sm:hidden flex items-center gap-2'>
 															<p className='text-[13px] font-bold uppercase text-[#4f4f4f]'>
 																{tClassified('userButtons.tr')}
 															</p>
 															<p className='text-[16px] font-bold text-[#3486fe]'>
-																50
+																{user!.trustRating}
 															</p>
 														</div>
 													</div>
 													{classified.user.phoneNumber ? (
-														<p className='text-[16px] font-bold text-[#f9329c]'>
-															{classified.user.phoneNumber}
+														<p
+															className={` ${
+																!classified.user.showPhone ? 'blur-sm' : ''
+															} text-[16px] font-bold text-[#f9329c]`}
+														>
+															{formatPhoneNumber(classified.user.phoneNumber)}
 														</p>
 													) : (
 														<p className='text-[16px] font-bold text-[#f9329c]'>
-															+380 96 42 07 202
+															+380 93 657 73 33
 														</p>
 													)}
 													<div className='flex items-center gap-4 max-sm:flex-col'>
