@@ -1,6 +1,13 @@
 'use client'
 
-import { startTransition, useEffect, useRef, useState } from 'react'
+import {
+	Dispatch,
+	SetStateAction,
+	useEffect,
+	useLayoutEffect,
+	useRef,
+	useState,
+} from 'react'
 import { CustomSelect } from './custom-select'
 import { ProfileFormInput } from './profile-form-input'
 import { UpdateUserProfileData, User } from '@/types'
@@ -89,7 +96,7 @@ export const ProfileInformationForm = ({
 	tooltipVisible,
 	isTooltipClicked,
 }: ProfileInformationFormProps) => {
-	const { user, updateUser, loading } = useUser()
+	const { user, updateUser } = useUser()
 	const { handleAuthSuccess } = useAuth()
 	const { setSubmitForm, setIsSubmitDisabled } = useProfileForm()
 	const tProfile = useTranslations('Profile')
@@ -162,7 +169,7 @@ export const ProfileInformationForm = ({
 	}, [user])
 
 	// Обновление состояния кнопки submit
-	useEffect(() => {
+	useLayoutEffect(() => {
 		const isFormValid =
 			formData.nickname.trim() !== '' &&
 			formData.email.trim() !== '' &&
@@ -397,9 +404,7 @@ export const ProfileInformationForm = ({
 				removeAvatar: false,
 			})
 
-			startTransition(() => {
-				router.push('/selling-classifieds')
-			})
+			router.replace('/selling-classifieds')
 		} catch (error: any) {
 			let errorMessage = tProfile('errors.serverError')
 			if (error.response?.data?.error) {
@@ -420,13 +425,13 @@ export const ProfileInformationForm = ({
 	}
 
 	// Установка функции сабмита в контекст
-	useEffect(() => {
+	useLayoutEffect(() => {
 		setSubmitForm(() => handleSubmit)
 	}, [setSubmitForm, formData, user])
 
-	if (isLoading || loading || !user) {
+	if (!user || isLoading) {
 		return (
-			<div className='min-h-screen flex flex-col items-center justify-center'>
+			<div className='flex flex-col items-center justify-center'>
 				<Loader />
 			</div>
 		)

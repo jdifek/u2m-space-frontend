@@ -32,7 +32,7 @@ export default function ClientSellingClassifieds() {
 	const [activeCategory, setActiveCategory] = useState(
 		tSellingClassifieds('tabs.selling')
 	)
-	const { selectedCurrency } = useLanguage()
+	const { settings } = useLanguage()
 
 	const limit = 20
 
@@ -40,7 +40,11 @@ export default function ClientSellingClassifieds() {
 		const fetchClassifieds = async () => {
 			try {
 				setIsLoading(true)
-				const data = await apiService.getClassifieds({ page, limit })
+				const data = await apiService.getClassifieds({
+					page,
+					limit,
+					currency: settings.currencyCode,
+				})
 				console.log(data)
 				setClassifieds(prev => [...prev, ...data.classifieds])
 				setHasMore(data.hasMore)
@@ -52,17 +56,17 @@ export default function ClientSellingClassifieds() {
 		}
 
 		fetchClassifieds()
-	}, [page])
+	}, [page, settings.currencyCode])
 
 	// Обновление цен при смене валюты
-	useEffect(() => {
-		setClassifieds(prev =>
-			prev.map(item => ({
-				...item,
-				convertedCurrency: selectedCurrency.code,
-			}))
-		)
-	}, [selectedCurrency.code])
+	// useEffect(() => {
+	// 	setClassifieds(prev =>
+	// 		prev.map(item => ({
+	// 			...item,
+	// 			convertedCurrency: selectedCurrency.code,
+	// 		}))
+	// 	)
+	// }, [selectedCurrency.code])
 
 	// Infinite Scroll
 	useEffect(() => {

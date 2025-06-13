@@ -6,6 +6,8 @@ import { ProfileInformationForm } from '@/components/ui/profile-information-form
 import { ProfileSettingsForm } from '@/components/ui/profile-settings-form'
 import { ProfileTabs } from '@/components/ui/profile-tabs'
 import { useAuth } from '@/helpers/contexts/auth-context'
+import { useProfileForm } from '@/helpers/contexts/profile-form-context'
+import { useUser } from '@/helpers/contexts/user-context'
 import { useRouter } from '@/i18n/routing'
 import { useLocale, useTranslations } from 'next-intl'
 import { useParams } from 'next/navigation'
@@ -48,7 +50,9 @@ export default function ProfilePage() {
 		advancedUser: false,
 		deleteReason: false,
 	})
+
 	const { authUser } = useAuth()
+
 	const { id } = useParams<{ id: string }>()
 	const router = useRouter()
 	const locale = useLocale()
@@ -66,11 +70,7 @@ export default function ProfilePage() {
 	}, [authUser, id, router])
 
 	if (!authUser) {
-		return (
-			<div className='min-h-screen flex flex-col items-center justify-center'>
-				<Loader />
-			</div>
-		)
+		return console.log('authUser not found')
 	}
 
 	const handleInfoTooltipMouseEnter = (
