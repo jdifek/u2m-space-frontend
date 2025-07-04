@@ -4,7 +4,13 @@ import Image from 'next/image'
 import { IconCustom } from './icon-custom'
 import { useTranslations } from 'next-intl'
 import { Link, useRouter } from '@/i18n/routing'
-import React, { useCallback, useLayoutEffect, useRef, useState } from 'react'
+import React, {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useRef,
+	useState,
+} from 'react'
 import { Classified } from '@/types'
 import { apiService } from '@/services/api.service'
 import { useSearch } from '@/helpers/contexts/search-context'
@@ -32,10 +38,17 @@ export const SearchInput = ({
 	const tComponents = useTranslations('Components')
 	const initPlaceholder = tComponents('placeholders.imLookingFor')
 
-	const { searchQuery, setSearchQuery, classifieds } = useSearch()
+	const {
+		searchQuery,
+		setSearchQuery,
+		classifieds,
+		setClassifieds,
+		resetFilters,
+		isFocused,
+		setIsFocused,
+	} = useSearch()
 
 	const [query, setQuery] = useState(searchQuery)
-	const [isFocused, setIsFocused] = useState(false)
 	const [searchHistory, setSearchHistory] = useState<string[]>([])
 	const [suggestions, setSuggestions] = useState<Classified[]>([])
 	const [isLoading, setIsLoading] = useState(false)
@@ -43,7 +56,7 @@ export const SearchInput = ({
 	const inputRef = useRef<HTMLInputElement>(null)
 	const router = useRouter()
 
-	useLayoutEffect(() => {
+	useEffect(() => {
 		const history = localStorage.getItem('searchHistory')
 		if (history) {
 			setSearchHistory(JSON.parse(history))
@@ -55,7 +68,7 @@ export const SearchInput = ({
 		localStorage.setItem('searchHistory', JSON.stringify(newHistory))
 	}
 
-	// Фильтрация объявлений
+	// Фильтрация и сортировка объявлений
 	const filterClassifieds = useCallback(
 		(query: string, classifieds: Classified[]): Classified[] => {
 			if (query.trim().length < 2) return []
@@ -74,9 +87,56 @@ export const SearchInput = ({
 					)
 					return titleMatch || descriptionMatch || priceMatch || tagsMatch
 				})
-				.slice(0, 5) // Ограничиваем до 5 предложений
+				.sort((a, b) => {
+					// Приоритет по плану: extremum > smart > light
+					const planPriority = {
+						extremum: 3,
+						smart: 2,
+						light: 1,
+					}
+
+					const priorityA = planPriority[a.plan] || 1
+					const priorityB = planPriority[b.plan] || 1
+
+					if (priorityA !== priorityB) {
+						return priorityB - priorityA // Высший приоритет выше
+					}
+
+					// Если планы одинаковые, сортируем по lastPromoted (от новых к старым)
+					const dateA = a.lastPromoted ? new Date(a.lastPromoted).getTime() : 0
+					const dateB = b.lastPromoted ? new Date(b.lastPromoted).getTime() : 0
+					return dateB - dateA
+				})
+				.slice(0, 4) // Лимит 4 объявления
 		},
 		[]
+	)
+
+	// Обновление результатов поиска
+	const updateSearchResults = useCallback(
+		async (search: string) => {
+			if (search.trim().length < 2) return
+			setIsLoading(true)
+			try {
+				const data = await apiService.filterClassifieds({
+					search,
+					currency: 'USD', // Используем валюту по умолчанию, можно добавить выбор валюты
+					limit: 20, // Стандартный лимит для списка объявлений
+					offset: 0,
+				})
+				const newClassifieds = [
+					...data.classifieds.largeFirst,
+					...data.classifieds.largeSecond,
+					...data.classifieds.small,
+				]
+				setClassifieds(newClassifieds)
+			} catch (error) {
+				console.error('Error updating search results:', error)
+			} finally {
+				setIsLoading(false)
+			}
+		},
+		[setClassifieds]
 	)
 
 	// Обработка изменения ввода
@@ -94,14 +154,15 @@ export const SearchInput = ({
 
 	// Обработка клика по предложению или истории
 	const handleSuggestionClick = useCallback(
-		(value: string, id?: string) => {
+		async (value: string, id?: string) => {
 			setQuery(value)
 			setSuggestions([])
 			if (!searchHistory.includes(value)) {
-				const newHistory = [value, ...searchHistory.slice(0, 4)] // Храним до 5 запросов
+				const newHistory = [value, ...searchHistory.slice(0, 4)]
 				saveHistory(newHistory)
 			}
 			setSearchQuery(value)
+			await updateSearchResults(value)
 			// if (id) {
 			// 	router.push(`/selling-classifieds/${id}`)
 			// } else {
@@ -109,17 +170,34 @@ export const SearchInput = ({
 			// }
 			inputRef.current?.focus()
 		},
-		[router, saveHistory, searchHistory, setSearchQuery]
+		[router, saveHistory, searchHistory, setSearchQuery, updateSearchResults]
 	)
 
 	// Очистка поля поиска
-	const handleClear = useCallback(() => {
+	const handleClear = useCallback(async () => {
 		setQuery('')
 		setSuggestions([])
 		setSearchQuery('')
-		router.push('/selling-classifieds')
+		resetFilters()
+
+		try {
+			const data = await apiService.getClassifieds({
+				page: 1,
+				limit: 20,
+				currency: 'USD', // Используем валюту по умолчанию
+			})
+			const newClassifieds = [
+				...data.classifieds.largeFirst,
+				...data.classifieds.largeSecond,
+				...data.classifieds.small,
+			]
+			setClassifieds(newClassifieds)
+		} catch (error) {
+			console.error('Error resetting classifieds:', error)
+		}
+
 		inputRef.current?.focus()
-	}, [router, setSearchQuery])
+	}, [setSearchQuery, setClassifieds, resetFilters])
 
 	// Удаление запроса из истории
 	const handleDeleteHistory = useCallback(
@@ -151,44 +229,56 @@ export const SearchInput = ({
 		return text.replace(regex, '<span class="bg-yellow-200">$1</span>')
 	}
 
-	// Определяем элементы автокомплита
+	// Условия для отображения автокомплита
 	const showHistory =
-		isFocused && query.trim().length < 2 && searchHistory.length > 0
-	const showSuggestions = isFocused && suggestions.length > 0
+		isFocused &&
+		query.trim().length >= 1 &&
+		query.trim().length < 2 &&
+		searchHistory.length > 0
+	const showSuggestions =
+		isFocused && query.trim().length >= 2 && suggestions.length > 0
+	const isAutocompleteOpen = showHistory || showSuggestions
 
 	const target =
 		typeof window !== 'undefined' && localStorage.getItem('hasVisited')
 			? '/selling-classifieds'
 			: '/'
 
+	// Определяем источник логотипа
+	const logoSrc = isFocused
+		? query.trim().length >= 1
+			? '/icons/logo_input_active.svg'
+			: '/icons/logo_blue.svg'
+		: '/icons/logo_input.svg'
+
 	return (
 		<div className={`relative w-full select-none ${className}`}>
+			{/* Логотип */}
 			<div className='absolute inset-y-0 left-4 flex items-center'>
-				{isFocused ? (
-					<Image
-						src='/icons/logo_input_active.svg'
-						alt='logo icon'
-						width={48}
-						height={32}
-					/>
-				) : logoActive ? (
+				{logoActive && !isFocused ? (
 					<Link href={target}>
-						<Image
-							src='/icons/logo_input.svg'
-							alt='logo icon'
-							width={48}
-							height={32}
-						/>
+						<Image src={logoSrc} alt='logo icon' width={48} height={32} />
 					</Link>
-				) : (
-					<Image
-						src='/icons/logo_input.svg'
-						alt='logo icon'
-						width={48}
-						height={32}
+				) : smallWidth && isFocused ? (
+					<ButtonCustom
+						onClick={handleClear}
+						iconWrapperClass='w-6 h-6'
+						icon={
+							<IconCustom
+								name='arrow-prev'
+								hover={true}
+								hoverColor='#f9329c'
+								className='w-6 h-6 text-[#3486FE] fill-none group-hover:text-[#f9329c] group-focus:text-[#f9329c]'
+							/>
+						}
+						isHover
+						className='p-4 min-w-14 md:p-8 md:min-w-[88px] w-fit'
 					/>
+				) : (
+					<Image src={logoSrc} alt='logo icon' width={48} height={32} />
 				)}
 			</div>
+
 			{/* Поле ввода */}
 			<input
 				ref={inputRef}
@@ -200,19 +290,21 @@ export const SearchInput = ({
 				onKeyDown={handleSearch}
 				placeholder={placeholder || initPlaceholder}
 				disabled={disabled}
-				className={`${inputClass} w-full h-16 pl-20 pr-20 py-4 ${
+				className={`${inputClass} w-full h-16 pl-20 pr-20 py-4 text-[18px] placeholder:text-[#4f4f4f] focus:outline-none transition-opacity duration-200 ${
 					smallWidth
 						? 'border-none bg-transparent'
-						: 'border border-[#bdbdbd] rounded-4xl focus:ring-2 focus:ring-blue-500'
-				} focus:outline-none placeholder:text-[#4f4f4f] text-[18px]`}
+						: isAutocompleteOpen
+						? 'border border-transparent rounded-t-4xl bg-white shadow-custom-xl'
+						: 'border border-[#bdbdbd] rounded-4xl focus:border-transparent focus:ring-1 focus:ring-[#F9329C]'
+				}`}
 			/>
 
-			{/*Кнопка очистки + иконки микрофона и камеры */}
+			{/* Кнопка очистки + иконки микрофона и камеры */}
 			<div className='max-md:hidden absolute inset-y-0 right-4 flex items-center gap-4'>
 				{query && (
 					<ButtonCustom
 						onClick={handleClear}
-						className='max-w-[76px] w-full h-8 px-4 bg-white border border-[#4F4F4F rounded-lg hover:border-[#f9329c] active:text-white active:bg-[#3486fe] active:border-[#3486fe]'
+						className='max-w-[76px] w-full h-8 px-4 bg-white border border-[#4F4F4F] rounded-lg hover:border-[#f9329c] active:text-white active:bg-[#3486fe] active:border-[#3486fe]'
 						text='Clear'
 					/>
 				)}
@@ -231,27 +323,32 @@ export const SearchInput = ({
 			</div>
 
 			{/* Автокомплит */}
-			{isFocused && (showHistory || showSuggestions) && (
-				<div className='absolute top-full left-0 right-0 mt-2 bg-white border border-[#bdbdbd] rounded-xl shadow-lg z-10 max-h-[400px] overflow-y-auto'>
+			{isAutocompleteOpen && (
+				<div
+					className={`absolute top-full left-0 right-0 bg-white shadow-custom-xl z-40 max-h-[298px] overflow-y-auto rounded-b-[13px] ${
+						smallWidth ? 'border-none' : 'border border-transparent'
+					}`}
+				>
 					{/* История поиска */}
 					{showHistory && (
 						<>
-							<div className='px-3 pt-2 text-sm text-gray-500 font-medium'>
-								История поиска
-							</div>
-							{searchHistory.slice(0, 5).map(item => (
+							{searchHistory.slice(0, 4).map(item => (
 								<div
 									key={item}
-									className='flex items-center justify-between p-3 hover:bg-gray-100 cursor-pointer'
+									className='flex items-center justify-between px-4 py-2 hover:bg-[#F7F7F7] cursor-pointer group'
 									onClick={() => handleSuggestionClick(item)}
 								>
-									<div className='flex items-center gap-2'>
-										<IconCustom
-											name='Interface/History'
-											className='w-5 h-5 text-[#3486fe]'
-										/>
+									<div className='flex items-center gap-4'>
+										<div className='w-[50px] h-10 flex items-center justify-center'>
+											<IconCustom
+												name='history'
+												hover={true}
+												hoverColor='#4F4F4F'
+												className='w-6 h-6 text-[#BDBDBD] group-hover:text-[#4F4F4F] fill-none'
+											/>
+										</div>
 										<span
-											className='text-[16px] text-[#4f4f4f]'
+											className='text-[16px] font-bold text-[#4F4F4F]'
 											dangerouslySetInnerHTML={{
 												__html: highlightMatch(item, query),
 											}}
@@ -262,11 +359,13 @@ export const SearchInput = ({
 											e.stopPropagation()
 											handleDeleteHistory(item)
 										}}
-										className='p-1'
+										className='w-10 h-10 cursor-pointer flex items-center justify-center'
 									>
 										<IconCustom
-											name='Menu/Close_MD'
-											className='w-5 h-5 text-[#4f4f4f] hover:text-[#f9329c]'
+											name='close'
+											className='w-3 h-3 fill-none text-[#4f4f4f] group-hover:text-[#f9329c]'
+											hover={true}
+											hoverColor='#f9329c'
 										/>
 									</button>
 								</div>
@@ -277,22 +376,23 @@ export const SearchInput = ({
 					{/* Предложения */}
 					{showSuggestions && (
 						<>
-							<div className='px-3 pt-2 text-sm text-gray-500 font-medium'>
-								Найденные объявления
-							</div>
 							{suggestions.map(item => (
 								<div
 									key={item.id}
-									className='flex items-center justify-between p-3 hover:bg-gray-100 cursor-pointer'
+									className='lex items-center justify-between px-4 py-2 hover:bg-[#F7F7F7] cursor-pointer group'
 									onClick={() => handleSuggestionClick(item.title, item.id)}
 								>
-									<div className='flex items-center gap-2'>
-										<IconCustom
-											name='Interface/Search_Magnifying_Glass'
-											className='w-5 h-5 text-[#3486fe]'
-										/>
+									<div className='flex items-center gap-4'>
+										<div className='w-[50px] h-10 flex items-center justify-center'>
+											<IconCustom
+												name='search-glass'
+												hover={true}
+												hoverColor='#4F4F4F'
+												className='w-6 h-6 text-[#BDBDBD] group-hover:text-[#4F4F4F] fill-none'
+											/>
+										</div>
 										<div
-											className='text-[16px] text-[#4f4f4f] font-medium'
+											className='text-[16px] font-bold text-[#4F4F4F]'
 											dangerouslySetInnerHTML={{
 												__html: highlightMatch(item.title, query),
 											}}
