@@ -217,7 +217,8 @@ a[href^='tel'] {
 }
 
 .navigation-btn-slider,
-.category-tabs-slider {
+.category-tabs-slider,
+.profile-tabs-slider {
 	& .swiper-slide {
 		width: auto !important;
 	}
@@ -315,4 +316,26 @@ a[href^='tel'] {
 	border: 1px dashed #ccc;
 	border-radius: 13px;
 	z-index: 0;
+}
+
+.react-range-track {
+	height: 8px;
+	border-radius: 4px;
+	position: relative;
+}
+
+.react-range-thumb {
+	outline: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.rich-text strong {
+	font-weight: 700;
+}
+
+.rich-text a {
+	color: #3486fe;
+	text-decoration: underline;
 }

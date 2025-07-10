@@ -3,6 +3,7 @@
 import { useSearch } from '@/helpers/contexts/search-context'
 import { apiService } from '@/services/api.service'
 import { useTranslations } from 'next-intl'
+import { Range } from 'react-range'
 import {
 	useCallback,
 	useEffect,
@@ -10,6 +11,8 @@ import {
 	useRef,
 	useState,
 } from 'react'
+import { IconCustom } from './icon-custom'
+import { ButtonCustom } from './button-custom'
 
 interface FilterModalProps {
 	isOpen: boolean
@@ -29,7 +32,15 @@ export const FilterModal = ({
 	buttonRef,
 }: FilterModalProps) => {
 	const tComponents = useTranslations('Components')
-	const { searchQuery, setClassifieds, resetFilters } = useSearch()
+	const {
+		searchQuery,
+		setClassifieds,
+		resetFilters,
+		city,
+		setCity,
+		availableCities,
+		setAvailableCities,
+	} = useSearch()
 
 	const [priceRange, setPriceRange] = useState<PriceRange | null>(null)
 	const [minPrice, setMinPrice] = useState<number | null>(null)
@@ -40,6 +51,20 @@ export const FilterModal = ({
 	const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
 	const modalRef = useRef<HTMLDivElement>(null)
+
+	// const sortOptions = [
+	// 	{ value: 'createdAt-desc', label: tComponents('First new') },
+	// 	{ value: 'createdAt-asc', label: tComponents('First old') },
+	// 	{ value: 'price-desc', label: tComponents('High price') },
+	// 	{ value: 'price-asc', label: tComponents('Low price') },
+	// ]
+
+	const sortOptions = [
+		{ value: 'createdAt-desc', label: 'First new' },
+		{ value: 'createdAt-asc', label: 'First old' },
+		{ value: 'price-desc', label: 'High price' },
+		{ value: 'price-asc', label: 'Low price' },
+	]
 
 	// Закрытие модального окна при клике вне
 	useEffect(() => {
@@ -64,42 +89,18 @@ export const FilterModal = ({
 	}, [isOpen, onClose])
 
 	// Позиционирование модального окна
-	useEffect(() => {
-		const updatePosition = () => {
-			if (isOpen && buttonRef.current && modalRef.current) {
-				const buttonRect = buttonRef.current.getBoundingClientRect()
-				const modalRect = modalRef.current.getBoundingClientRect()
-				const viewportWidth = window.innerWidth
-				const viewportHeight = window.innerHeight
-
-				// Позиционируем под кнопкой
-				let top = buttonRect.bottom + window.scrollY + 8 // Отступ 8px от кнопки
-				let right = viewportWidth - buttonRect.right
-
-				// Проверяем, не выходит ли модалка за нижнюю границу экрана
-				if (top + modalRect.height > viewportHeight + window.scrollY) {
-					top = buttonRect.top + window.scrollY - modalRect.height - 8 // Позиционируем над кнопкой
-				}
-
-				// Проверяем, не выходит ли модалка за правую границу
-				if (right < 0) {
-					right = 8 // Минимальный отступ от края
-				}
-
-				modalRef.current.style.top = `${top}px`
-				modalRef.current.style.right = `${right}px`
+	const getModalPosition = () => {
+		if (buttonRef.current) {
+			const rect = buttonRef.current.getBoundingClientRect()
+			return {
+				top: rect.bottom + window.scrollY,
+				left: rect.left, // Позиционируем по левой стороне кнопки
 			}
 		}
+		return { top: 0, left: 0 }
+	}
 
-		if (isOpen) {
-			updatePosition()
-			window.addEventListener('resize', updatePosition)
-		}
-
-		return () => {
-			window.removeEventListener('resize', updatePosition)
-		}
-	}, [isOpen, buttonRef])
+	const { top, left } = getModalPosition()
 
 	// Загрузка начальных данных
 	useEffect(() => {
@@ -110,15 +111,22 @@ export const FilterModal = ({
 						search: searchQuery,
 						currency: 'USD',
 					})
+					const minPriceValue = data.priceRange.convertedMin
+					const maxPriceValue =
+						data.priceRange.convertedMax === data.priceRange.convertedMin
+							? data.priceRange.convertedMin + 1 // Добавляем 1, если min === max
+							: data.priceRange.convertedMax
 					setPriceRange({
-						convertedMin: data.priceRange.convertedMin,
-						convertedMax: data.priceRange.convertedMax,
+						convertedMin: minPriceValue,
+						convertedMax: maxPriceValue,
 						convertedCurrency: data.priceRange.convertedCurrency,
 					})
-					setMinPrice(data.priceRange.convertedMin)
-					setMaxPrice(data.priceRange.convertedMax)
+					setMinPrice(minPriceValue)
+					setMaxPrice(maxPriceValue)
 					setAvailableTags(data.availableTags || [])
+					setAvailableCities(data.availableCities || [])
 					setSelectedTags([])
+					setCity(null)
 					setSortBy('createdAt')
 					setSortOrder('desc')
 					const newClassifieds = [
@@ -133,7 +141,7 @@ export const FilterModal = ({
 			}
 			fetchFilterData()
 		}
-	}, [isOpen, searchQuery, setClassifieds])
+	}, [isOpen, searchQuery, setClassifieds, setAvailableCities])
 
 	// Применение фильтров
 	const applyFilters = useCallback(async () => {
@@ -150,6 +158,7 @@ export const FilterModal = ({
 					: 'USD') as 'USD' | 'UAH' | 'EUR',
 				sortBy,
 				sortOrder,
+				city: city ?? undefined,
 			})
 			const newClassifieds = [
 				...data.classifieds.largeFirst,
@@ -168,6 +177,7 @@ export const FilterModal = ({
 		priceRange,
 		sortBy,
 		sortOrder,
+		city,
 		setClassifieds,
 	])
 
@@ -178,22 +188,23 @@ export const FilterModal = ({
 		)
 	}, [])
 
-	// Обработка изменения сортировки
-	const handleSortChange = (value: string) => {
-		if (value === 'price-desc') {
-			setSortBy('price')
-			setSortOrder('desc')
-		} else if (value === 'price-asc') {
-			setSortBy('price')
-			setSortOrder('asc')
-		} else if (value === 'createdAt-desc') {
-			setSortBy('createdAt')
-			setSortOrder('desc')
-		} else if (value === 'createdAt-asc') {
-			setSortBy('createdAt')
-			setSortOrder('asc')
-		}
-	}
+	// Обработка выбора города
+	const toggleCity = useCallback(
+		(selectedCity: string) => {
+			setCity(city === selectedCity ? null : selectedCity)
+		},
+		[city, setCity]
+	)
+
+	// Обработка выбора сортировки
+	const toggleSort = useCallback((value: string) => {
+		const [sortField, order] = value.split('-') as [
+			'price' | 'createdAt',
+			'asc' | 'desc'
+		]
+		setSortBy(sortField)
+		setSortOrder(order)
+	}, [])
 
 	// Применение фильтров при изменении параметров
 	useEffect(() => {
@@ -206,6 +217,7 @@ export const FilterModal = ({
 		maxPrice,
 		sortBy,
 		sortOrder,
+		city,
 		applyFilters,
 		isOpen,
 	])
@@ -215,6 +227,7 @@ export const FilterModal = ({
 		setMinPrice(priceRange?.convertedMin ?? null)
 		setMaxPrice(priceRange?.convertedMax ?? null)
 		setSelectedTags([])
+		setCity(null)
 		setSortBy('createdAt')
 		setSortOrder('desc')
 		resetFilters() // Сбрасываем фильтры в контексте
@@ -226,99 +239,187 @@ export const FilterModal = ({
 	return (
 		<div
 			ref={modalRef}
-			className='absolute bg-white border border-[#bdbdbd] rounded-xl shadow-lg z-30 p-4 w-[300px] max-h-[400px] overflow-y-auto transition-all duration-300 ease-in-out transform opacity-0 scale-95 data-[open=true]:opacity-100 data-[open=true]:scale-100'
+			className='fixed top-[80px] right-40 bg-white rounded-b-[13px] shadow-custom-xl z-50 w-[550px] h-auto overflow-hidden transition-all duration-300 ease-in-out transform opacity-0 scale-95 data-[open=true]:opacity-100 data-[open=true]:scale-100'
+			style={{ top: `${top}px`, left: `${left}px` }}
 			data-open={isOpen}
 		>
 			{/* Диапазон цен */}
-			<div className='mb-4'>
-				<h3 className='text-sm font-medium text-gray-500 mb-2'>
-					{tComponents('priceRange')}
-				</h3>
-				<div className='relative'>
-					<input
-						type='range'
-						min={priceRange.convertedMin}
-						max={priceRange.convertedMax}
-						value={minPrice ?? priceRange.convertedMin}
-						onChange={e => {
-							const value = Number(e.target.value)
-							if (maxPrice === null || value <= maxPrice) {
-								setMinPrice(value)
-							}
-						}}
-						className='w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer'
-						style={{ accentColor: '#3486fe' }}
-					/>
-					<input
-						type='range'
-						min={priceRange.convertedMin}
-						max={priceRange.convertedMax}
-						value={maxPrice ?? priceRange.convertedMax}
-						onChange={e => {
-							const value = Number(e.target.value)
-							if (minPrice === null || value >= minPrice) {
-								setMaxPrice(value)
-							}
-						}}
-						className='w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer absolute top-0'
-						style={{ accentColor: '#f9329c' }}
-					/>
-				</div>
-				<div className='flex justify-between mt-2'>
-					<span className='text-sm text-gray-500'>
-						{minPrice ?? priceRange.convertedMin} {priceRange.convertedCurrency}
-					</span>
-					<span className='text-sm text-gray-500'>
-						{maxPrice ?? priceRange.convertedMax} {priceRange.convertedCurrency}
-					</span>
+			<div className='p-8'>
+				<p className='text-[16px] font-bold text-[#4F4F4F] mb-4'>Price</p>
+				<div className='relative' style={{ height: '46px' }}>
+					{priceRange && priceRange.convertedMin < priceRange.convertedMax ? (
+						<Range
+							step={1}
+							min={priceRange.convertedMin}
+							max={priceRange.convertedMax}
+							values={[
+								minPrice ?? priceRange.convertedMin,
+								maxPrice ?? priceRange.convertedMax,
+							]}
+							onChange={values => {
+								setMinPrice(values[0])
+								setMaxPrice(values[1])
+							}}
+							renderTrack={({ props, children }) => (
+								<div
+									{...props}
+									className='h-2 w-full bg-[#F7F7F7] rounded-lg'
+									style={{
+										position: 'relative',
+										top: '50%',
+										transform: 'translateY(-50%)',
+									}}
+								>
+									<div
+										className='absolute h-2 bg-[#F7F7F7] rounded-lg'
+										style={{
+											left: `${
+												(((minPrice ?? priceRange.convertedMin) -
+													priceRange.convertedMin) /
+													(priceRange.convertedMax - priceRange.convertedMin)) *
+												100
+											}%`,
+											width: `${
+												(((maxPrice ?? priceRange.convertedMax) -
+													(minPrice ?? priceRange.convertedMin)) /
+													(priceRange.convertedMax - priceRange.convertedMin)) *
+												100
+											}%`,
+										}}
+									/>
+									{children}
+								</div>
+							)}
+							renderThumb={({ props, index }) => (
+								<div
+									{...props}
+									className={`h-[46px] w-[50px] flex items-center justify-center text-white text-[16px] font-bold rounded-md focus:outline-none focus:ring-2 focus:ring-[#3486FE] ${
+										index === 0 ? 'bg-[#3486FE]' : 'bg-[#F9329C]'
+									}`}
+									style={{
+										...props.style,
+										boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+										cursor: 'pointer',
+										// Корректировка позиции, чтобы учесть padding: 32px
+										left: `calc(${props.style.left} - ${
+											index === 0 ? '32px' : '0px'
+										})`,
+										right: `calc(${props.style.right} - ${
+											index === 1 ? '32px' : '0px'
+										})`,
+									}}
+								>
+									{index === 0
+										? `$${minPrice ?? priceRange.convertedMin}`
+										: `$${maxPrice ?? priceRange.convertedMax}`}
+								</div>
+							)}
+						/>
+					) : (
+						<p className='text-sm text-gray-500'>Price range not available</p>
+					)}
 				</div>
 			</div>
 
 			{/* Теги */}
-			<div className='mb-4'>
-				<h3 className='text-sm font-medium text-gray-500 mb-2'>
-					{tComponents('tags')}
-				</h3>
-				<div className='flex flex-wrap gap-2'>
+			<div className='p-8'>
+				<p className='text-[16px] font-bold text-[#4F4F4F] mb-4'>Tags</p>
+				<div className='flex flex-wrap gap-4'>
 					{availableTags.map(tag => (
-						<button
+						<ButtonCustom
 							key={tag}
 							onClick={() => toggleTag(tag)}
-							className={`px-3 py-1 rounded-full text-sm border ${
+							text={tag}
+							iconWrapperClass='w-6 h-6'
+							icon={
+								<IconCustom
+									name={
+										selectedTags.includes(tag) ? 'switch-right' : 'switch-left'
+									}
+									className={`w-6 h-6 fill-none ${
+										selectedTags.includes(tag)
+											? 'text-[#6FCF97]'
+											: 'text-[#BDBDBD]'
+									}`}
+								/>
+							}
+							className={`py-2 pl-2 pr-4 rounded-lg bg-[#F7F7F7] border text-[16px] font-bold ${
 								selectedTags.includes(tag)
-									? 'bg-[#3486fe] text-white border-[#3486fe]'
-									: 'bg-white text-[#4f4f4f] border-[#bdbdbd]'
-							} transition-colors duration-200`}
-						>
-							{tag}
-						</button>
+									? 'text-[#3486FE] border-[#3486fe]'
+									: 'text-[#BDBDBD] border-[#bdbdbd]'
+							} transition-colors duration-300`}
+						/>
+					))}
+				</div>
+			</div>
+
+			{/* Сортировка по региону */}
+			<div className='p-8'>
+				<p className='text-[16px] font-bold text-[#4F4F4F] mb-4'>
+					Sort by Region and City
+				</p>
+				<div className='flex flex-wrap gap-4'>
+					{availableCities.map(cityItem => (
+						<ButtonCustom
+							key={cityItem}
+							onClick={() => toggleCity(cityItem)}
+							text={cityItem}
+							iconWrapperClass='w-6 h-6'
+							icon={
+								<IconCustom
+									name={city === cityItem ? 'switch-right' : 'switch-left'}
+									className={`w-6 h-6 fill-none ${
+										city === cityItem ? 'text-[#6FCF97]' : 'text-[#BDBDBD]'
+									}`}
+								/>
+							}
+							className={`py-2 pl-2 pr-4 rounded-lg bg-[#F7F7F7] border text-[16px] font-bold ${
+								city === cityItem
+									? 'text-[#3486FE] border-[#3486fe]'
+									: 'text-[#BDBDBD] border-[#bdbdbd]'
+							} transition-colors duration-300`}
+						/>
 					))}
 				</div>
 			</div>
 
 			{/* Сортировка */}
-			<div>
-				<h3 className='text-sm font-medium text-gray-500 mb-2'>
-					{tComponents('sortBy')}
-				</h3>
-				<select
-					onChange={e => handleSortChange(e.target.value)}
-					className='w-full p-2 border border-[#bdbdbd] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#3486fe]'
-				>
-					<option value='createdAt-desc'>{tComponents('firstNew')}</option>
-					<option value='createdAt-asc'>{tComponents('firstOld')}</option>
-					<option value='price-desc'>{tComponents('highPrice')}</option>
-					<option value='price-asc'>{tComponents('lowPrice')}</option>
-				</select>
+			<div className='p-8'>
+				<p className='text-[16px] font-bold text-[#4F4F4F] mb-4'>Sort</p>
+				<div className='grid grid-cols-2 gap-4 w-fit'>
+					{sortOptions.map(option => (
+						<ButtonCustom
+							key={option.value}
+							onClick={() => toggleSort(option.value)}
+							text={option.label}
+							iconWrapperClass='w-6 h-6'
+							icon={
+								<IconCustom
+									name='check'
+									className={`w-6 h-6 fill-none ${
+										sortBy + '-' + sortOrder === option.value
+											? 'text-[#6FCF97]'
+											: 'text-[#BDBDBD]'
+									}`}
+								/>
+							}
+							className={`max-w-full py-2 pl-2 pr-4 rounded-lg bg-[#F7F7F7] border text-[16px] font-bold ${
+								sortBy + '-' + sortOrder === option.value
+									? 'text-[#3486FE] border-[#3486fe]'
+									: 'text-[#BDBDBD] border-[#bdbdbd]'
+							} transition-colors duration-300`}
+						/>
+					))}
+				</div>
 			</div>
-
 			{/* Кнопка закрытия */}
-			<button
-				onClick={onClose}
-				className='mt-4 w-full bg-[#6FCF97] text-white py-2 rounded-lg text-sm font-medium hover:bg-[#5BBF87] transition-colors duration-200'
-			>
-				{tComponents('apply')}
-			</button>
+			<div className='flex justify-end p-8'>
+				<ButtonCustom
+					onClick={onClose}
+					text='Apply'
+					className='min-w-[81px] h-10 px-4 md:px-4 py-2 md:py-2.5 text-white bg-[#6FCF97]! rounded-lg'
+				/>
+			</div>
 		</div>
 	)
 }

@@ -16,6 +16,7 @@ export interface Classified {
 	isActive: boolean
 	favoritesBool: boolean
 	category?: string
+	city?: string
 	createdAt: string
 	plan: 'light' | 'smart' | 'extremum'
 	lastPromoted: string
@@ -104,4 +105,12 @@ export interface convertedCurrencyItems {
 export type CityOption = {
 	id: number
 	name: string
+}
+
+export interface Notification {
+	id: string
+	type: string
+	messageData: { [key: string]: string }
+	isRead: boolean
+	createdAt: string
 }

@@ -22,6 +22,12 @@ interface ClassifiedsResponse {
 	hasMore: boolean
 }
 
+interface UserClassifiedsResponse {
+	classifieds: Classified[]
+	total: number
+	hasMore: boolean
+}
+
 interface ClassifiedData {
 	title: string
 	description: string
@@ -87,6 +93,7 @@ export interface PriceRange {
 export interface FilterClassifiedsResponse extends ClassifiedsResponse {
 	priceRange: PriceRange
 	availableTags: string[]
+	availableCities: string[]
 }
 
 export class ApiService {
@@ -120,6 +127,7 @@ export class ApiService {
 		currency?: 'USD' | 'UAH' | 'EUR'
 		sortBy?: 'price' | 'createdAt'
 		sortOrder?: 'asc' | 'desc'
+		city?: string
 		limit?: number
 		offset?: number
 	}): Promise<FilterClassifiedsResponse> {
@@ -132,6 +140,7 @@ export class ApiService {
 				currency: params.currency || 'USD',
 				sortBy: params.sortBy || 'createdAt',
 				sortOrder: params.sortOrder || 'desc',
+				city: params.city,
 				limit: params.limit || 20,
 				offset: params.offset || 0,
 			},
@@ -150,7 +159,7 @@ export class ApiService {
 	async getUserClassifieds(params: {
 		page: number
 		limit: number
-	}): Promise<ClassifiedsResponse> {
+	}): Promise<UserClassifiedsResponse> {
 		const offset = (params.page - 1) * params.limit
 		const res = await $api.get('/api/classifieds/user', {
 			params: { limit: params.limit, offset },
@@ -161,7 +170,7 @@ export class ApiService {
 	async getUserFavorites(params: {
 		page: number
 		limit: number
-	}): Promise<ClassifiedsResponse> {
+	}): Promise<UserClassifiedsResponse> {
 		const offset = (params.page - 1) * params.limit
 		const res = await $api.get('/api/favorites/user', {
 			params: { limit: params.limit, offset },
